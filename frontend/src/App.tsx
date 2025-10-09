@@ -1,4 +1,3 @@
-import React from 'react'
 import { ThemeProvider, createTheme, CssBaseline, Container } from '@mui/material'
 import RecruitmentContent from './components/RecruitmentContent'
 import { JobDescriptionProvider } from './contexts/JobDescriptionContext'

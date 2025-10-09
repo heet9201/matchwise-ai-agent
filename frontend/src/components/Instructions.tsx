@@ -54,7 +54,7 @@ const Instructions: React.FC = () => {
             </Alert>
 
             <Stepper orientation="vertical">
-                {steps.map((step, index) => (
+                {steps.map((step) => (
                     <Step key={step.label} active={true}>
                         <StepLabel>
                             <Typography variant="subtitle1">{step.label}</Typography>

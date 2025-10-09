@@ -16,7 +16,6 @@ import {
     ListItemText,
     LinearProgress,
     IconButton,
-    Chip,
     Stack,
 } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
@@ -29,15 +28,7 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
-
-interface AnalysisResult {
-    filename: string;
-    score: number;
-    missing_skills: string[];
-    remarks: string;
-    email: string;
-    error?: string;
-}
+import type { AnalysisResult } from '../types/analysis';
 
 interface UploadedFile {
     file: File;
@@ -92,9 +83,10 @@ const ResumeUpload: React.FC = () => {
             });
 
             const response = await apiService.analyzeResumes(formData);
+            const results: AnalysisResult[] = response.data?.results || [];
 
-            if (response.success && response.data?.results) {
-                setResults(response.data.results);
+            if (response.success && results.length > 0) {
+                setResults(results);
 
                 // Update file statuses based on analysis results
                 setUploadedFiles(files =>

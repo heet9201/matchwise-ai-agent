@@ -10,12 +10,10 @@ import {
     TableRow,
     Chip,
     Box,
-    Button,
     IconButton,
     Tooltip,
 } from '@mui/material';
 import { useResume } from '../contexts/ResumeContext';
-import type { AnalysisResult } from '../types/analysis';
 import EmailDisplayDialog from './EmailDisplayDialog';
 import EmailIcon from '@mui/icons-material/Email';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
