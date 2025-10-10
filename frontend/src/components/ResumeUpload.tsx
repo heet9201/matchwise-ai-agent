@@ -75,7 +75,7 @@ const ResumeUpload: React.FC = () => {
         // Clear previous results and reset state for new upload session
         const hasCompletedFiles = uploadedFiles.some(f => f.status === 'success' || f.status === 'error');
         const pendingFiles = uploadedFiles.filter(f => f.status === 'pending');
-        
+
         // If there are completed files, start fresh. If only pending files, allow adding more
         const baseFiles = hasCompletedFiles ? [] : pendingFiles;
 
@@ -306,54 +306,54 @@ const ResumeUpload: React.FC = () => {
                                 </Box>
                                 <List>
                                     {uploadedFiles.map((uploadedFile, index) => (
-                                    <ListItem
-                                        key={uploadedFile.file.name + index}
-                                        secondaryAction={
-                                            uploadedFile.status === 'pending' && (
-                                                <IconButton
-                                                    edge="end"
-                                                    aria-label="delete"
-                                                    onClick={() => handleRemoveFile(index)}
-                                                >
-                                                    <DeleteIcon />
-                                                </IconButton>
-                                            )
-                                        }
-                                    >
-                                        <ListItemIcon>
-                                            {uploadedFile.status === 'success' && <CheckCircleIcon color="success" />}
-                                            {uploadedFile.status === 'error' && <ErrorIcon color="error" />}
-                                            {(uploadedFile.status === 'processing' || uploadedFile.status === 'analyzing' || uploadedFile.status === 'analyzed' || uploadedFile.status === 'generating_email') && (
-                                                <Box position="relative" display="inline-flex">
-                                                    <CircularProgress size={24} variant="determinate" value={uploadedFile.progress || 0} />
-                                                    <Box
-                                                        position="absolute"
-                                                        top={0}
-                                                        left={0}
-                                                        bottom={0}
-                                                        right={0}
-                                                        display="flex"
-                                                        alignItems="center"
-                                                        justifyContent="center"
+                                        <ListItem
+                                            key={uploadedFile.file.name + index}
+                                            secondaryAction={
+                                                uploadedFile.status === 'pending' && (
+                                                    <IconButton
+                                                        edge="end"
+                                                        aria-label="delete"
+                                                        onClick={() => handleRemoveFile(index)}
                                                     >
-                                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
-                                                            {Math.round(uploadedFile.progress || 0)}%
-                                                        </Typography>
+                                                        <DeleteIcon />
+                                                    </IconButton>
+                                                )
+                                            }
+                                        >
+                                            <ListItemIcon>
+                                                {uploadedFile.status === 'success' && <CheckCircleIcon color="success" />}
+                                                {uploadedFile.status === 'error' && <ErrorIcon color="error" />}
+                                                {(uploadedFile.status === 'processing' || uploadedFile.status === 'analyzing' || uploadedFile.status === 'analyzed' || uploadedFile.status === 'generating_email') && (
+                                                    <Box position="relative" display="inline-flex">
+                                                        <CircularProgress size={24} variant="determinate" value={uploadedFile.progress || 0} />
+                                                        <Box
+                                                            position="absolute"
+                                                            top={0}
+                                                            left={0}
+                                                            bottom={0}
+                                                            right={0}
+                                                            display="flex"
+                                                            alignItems="center"
+                                                            justifyContent="center"
+                                                        >
+                                                            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
+                                                                {Math.round(uploadedFile.progress || 0)}%
+                                                            </Typography>
+                                                        </Box>
                                                     </Box>
-                                                </Box>
-                                            )}
-                                            {uploadedFile.status === 'pending' && <UploadFileIcon />}
-                                        </ListItemIcon>
-                                        <ListItemText
-                                            primary={uploadedFile.file.name}
-                                            secondary={uploadedFile.error || ''}
-                                            secondaryTypographyProps={{
-                                                color: uploadedFile.error ? 'error' : 'textSecondary'
-                                            }}
-                                        />
-                                    </ListItem>
-                                ))}
-                            </List>
+                                                )}
+                                                {uploadedFile.status === 'pending' && <UploadFileIcon />}
+                                            </ListItemIcon>
+                                            <ListItemText
+                                                primary={uploadedFile.file.name}
+                                                secondary={uploadedFile.error || ''}
+                                                secondaryTypographyProps={{
+                                                    color: uploadedFile.error ? 'error' : 'textSecondary'
+                                                }}
+                                            />
+                                        </ListItem>
+                                    ))}
+                                </List>
                             </>
                         )}
                     </>
