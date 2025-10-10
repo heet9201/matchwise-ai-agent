@@ -17,11 +17,11 @@ import { useJobDescription } from '../contexts/JobDescriptionContext';
 import { apiService } from '../services/api';
 
 interface JDFormData {
-    jobTitle: string;
-    yearsExperience: number;
-    mustHaveSkills: string;
-    companyName: string;
-    employmentType: string;
+    job_title: string;
+    years_experience: number;
+    must_have_skills: string;
+    company_name: string;
+    employment_type: string;
     industry: string;
     location: string;
 }
@@ -30,7 +30,7 @@ const JobDescriptionInput: React.FC = () => {
     const [tabValue, setTabValue] = useState(0);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { setJobDescription } = useJobDescription();
+    const { jobDescription, setJobDescription } = useJobDescription();
     const { register, handleSubmit, formState: { errors } } = useForm<JDFormData>();
 
     const onDrop = async (acceptedFiles: File[]) => {
@@ -93,7 +93,32 @@ const JobDescriptionInput: React.FC = () => {
     };
 
     return (
-        <Paper sx={{ mb: 3 }}>
+        <Paper sx={{ mb: 3, position: 'relative' }}>
+            {loading && (
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        zIndex: 1,
+                        borderRadius: 1,
+                    }}
+                >
+                    <CircularProgress size={40} />
+                    <Typography sx={{ mt: 2 }}>
+                        {tabValue === 0 ? 'Processing file...' :
+                            tabValue === 1 ? 'Updating job description...' :
+                                'Generating job description...'}
+                    </Typography>
+                </Box>
+            )}
             <Tabs
                 value={tabValue}
                 onChange={(_, newValue) => setTabValue(newValue)}
@@ -118,23 +143,79 @@ const JobDescriptionInput: React.FC = () => {
                     </Box>
                 )}
                 {!loading && tabValue === 0 && (
-                    <div {...getRootProps()} style={{
-                        border: '2px dashed',
-                        borderColor: isDragActive ? '#1976d2' : '#ccc',
-                        padding: '20px',
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        backgroundColor: isDragActive ? 'rgba(25, 118, 210, 0.08)' : 'transparent',
-                        transition: 'all 0.2s ease'
-                    }}>
-                        <input {...getInputProps()} />
-                        <Typography>
-                            Drag & drop a job description file here, or click to select one
-                        </Typography>
-                        <Typography variant="caption" display="block">
-                            Supported formats: PDF, DOC, DOCX
-                        </Typography>
-                    </div>
+                    <Box sx={{ height: '100%', minHeight: '300px' }}>
+                        {!jobDescription ? (
+                            <Box
+                                {...getRootProps()}
+                                sx={{
+                                    border: 2,
+                                    borderRadius: 1,
+                                    borderColor: isDragActive ? 'primary.main' : 'grey.300',
+                                    borderStyle: 'dashed',
+                                    p: 3,
+                                    height: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    backgroundColor: isDragActive ? 'action.hover' : 'background.paper',
+                                    cursor: loading ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                        borderColor: 'primary.main',
+                                        backgroundColor: 'action.hover'
+                                    }
+                                }}
+                            >
+                                <input {...getInputProps()} />
+                                <Box sx={{ mb: 2 }}>
+                                    <Typography variant="h6" color="primary" gutterBottom>
+                                        Upload Job Description
+                                    </Typography>
+                                    <Typography variant="body1" color="text.secondary" gutterBottom>
+                                        Drag & drop your file here, or click to select
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        Supported formats: PDF, DOC, DOCX
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        ) : (
+                            <Box sx={{
+                                p: 3,
+                                border: '1px solid',
+                                borderColor: 'success.main',
+                                borderRadius: 1,
+                                backgroundColor: 'success.light',
+                                position: 'relative'
+                            }}>
+                                <Typography variant="h6" color="success.dark" gutterBottom>
+                                    File Successfully Uploaded!
+                                </Typography>
+                                <Box sx={{
+                                    mt: 2,
+                                    p: 2,
+                                    backgroundColor: 'white',
+                                    borderRadius: 1,
+                                    boxShadow: 1
+                                }}>
+                                    <Typography color="text.secondary" gutterBottom>
+                                        Your job description has been processed and is ready for use.
+                                    </Typography>
+                                    <Button
+                                        variant="outlined"
+                                        color="primary"
+                                        onClick={() => {
+                                            setJobDescription('');
+                                        }}
+                                        sx={{ mt: 2 }}
+                                    >
+                                        Upload Another File
+                                    </Button>
+                                </Box>
+                            </Box>
+                        )}
+                    </Box>
                 )}
 
                 {!loading && tabValue === 1 && (
@@ -155,9 +236,9 @@ const JobDescriptionInput: React.FC = () => {
                                 <TextField
                                     fullWidth
                                     label="Job Title"
-                                    error={!!errors.jobTitle}
-                                    helperText={errors.jobTitle?.message}
-                                    {...register('jobTitle', { required: 'Job title is required' })}
+                                    error={!!errors.job_title}
+                                    helperText={errors.job_title?.message}
+                                    {...register('job_title', { required: 'Job title is required' })}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
@@ -165,9 +246,9 @@ const JobDescriptionInput: React.FC = () => {
                                     fullWidth
                                     type="number"
                                     label="Years of Experience"
-                                    error={!!errors.yearsExperience}
-                                    helperText={errors.yearsExperience?.message}
-                                    {...register('yearsExperience', {
+                                    error={!!errors.years_experience}
+                                    helperText={errors.years_experience?.message}
+                                    {...register('years_experience', {
                                         required: 'Years of experience is required',
                                         min: { value: 0, message: 'Must be 0 or greater' }
                                     })}
@@ -177,27 +258,27 @@ const JobDescriptionInput: React.FC = () => {
                                 <TextField
                                     fullWidth
                                     label="Must-have Skills (comma-separated)"
-                                    error={!!errors.mustHaveSkills}
-                                    helperText={errors.mustHaveSkills?.message}
-                                    {...register('mustHaveSkills', { required: 'Skills are required' })}
+                                    error={!!errors.must_have_skills}
+                                    helperText={errors.must_have_skills?.message}
+                                    {...register('must_have_skills', { required: 'Skills are required' })}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
                                 <TextField
                                     fullWidth
                                     label="Company Name"
-                                    error={!!errors.companyName}
-                                    helperText={errors.companyName?.message}
-                                    {...register('companyName', { required: 'Company name is required' })}
+                                    error={!!errors.company_name}
+                                    helperText={errors.company_name?.message}
+                                    {...register('company_name', { required: 'Company name is required' })}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
                                 <TextField
                                     fullWidth
                                     label="Employment Type"
-                                    error={!!errors.employmentType}
-                                    helperText={errors.employmentType?.message}
-                                    {...register('employmentType', { required: 'Employment type is required' })}
+                                    error={!!errors.employment_type}
+                                    helperText={errors.employment_type?.message}
+                                    {...register('employment_type', { required: 'Employment type is required' })}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>

@@ -3,6 +3,7 @@ import { Box } from '@mui/material';
 import Settings from './Settings';
 import Instructions from './Instructions';
 import JobDescriptionInput from './JobDescriptionInput';
+import JobDescriptionDisplay from './JobDescriptionDisplay';
 import ResumeUpload from './ResumeUpload';
 import ResultsDisplay from './ResultsDisplay';
 import { useSettings } from '../contexts/SettingsContext';
@@ -18,6 +19,7 @@ const RecruitmentContent: React.FC = () => {
                 onSettingsChange={setSettings}
             />
             <JobDescriptionInput />
+            <JobDescriptionDisplay />
             <ResumeUpload />
             <ResultsDisplay />
         </Box>
