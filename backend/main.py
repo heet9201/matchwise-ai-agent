@@ -403,7 +403,9 @@ async def process_resumes_stream(
                 "status": "processing",
                 "percentage": current_progress
             }
-            yield f"data: {json.dumps(progress)}\n\n"
+            # Ensure proper JSON serialization without extra newlines in strings
+            json_data = json.dumps(progress, ensure_ascii=False)
+            yield f"data: {json_data}\n\n"
             await asyncio.sleep(0.1)  # Small delay for UI update
             
             try:
@@ -413,7 +415,8 @@ async def process_resumes_stream(
                 # Send text extraction complete
                 progress["status"] = "analyzing"
                 progress["percentage"] = int(((index + 0.5) / total_files) * 90)
-                yield f"data: {json.dumps(progress)}\n\n"
+                json_data = json.dumps(progress, ensure_ascii=False)
+                yield f"data: {json_data}\n\n"
                 await asyncio.sleep(0.1)
                 
                 # Analyze resume
@@ -429,7 +432,8 @@ async def process_resumes_stream(
                 progress["status"] = "analyzed"
                 progress["percentage"] = int(((index + 1) / total_files) * 90)
                 progress["result"] = result
-                yield f"data: {json.dumps(progress)}\n\n"
+                json_data = json.dumps(progress, ensure_ascii=False)
+                yield f"data: {json_data}\n\n"
                 
             except Exception as e:
                 logger.error(f"Error processing resume {resume.filename}: {str(e)}")
@@ -445,7 +449,8 @@ async def process_resumes_stream(
                 progress["status"] = "error"
                 progress["error"] = str(e)
                 progress["result"] = error_result
-                yield f"data: {json.dumps(progress)}\n\n"
+                json_data = json.dumps(progress, ensure_ascii=False)
+                yield f"data: {json_data}\n\n"
         
         # Generate emails after all resumes are processed
         successful_results = [r for r in results if "error" not in r]
@@ -466,7 +471,8 @@ async def process_resumes_stream(
                         "status": "generating_email",
                         "percentage": email_progress_start + int((email_index / total_results) * email_progress_range)
                     }
-                    yield f"data: {json.dumps(email_gen_progress)}\n\n"
+                    json_data = json.dumps(email_gen_progress, ensure_ascii=False)
+                    yield f"data: {json_data}\n\n"
                     
                     is_acceptable = (
                         result["score"] >= minimum_score and
@@ -510,7 +516,8 @@ async def process_resumes_stream(
                             "percentage": email_progress_start + int(((email_index + 1) / total_results) * email_progress_range),
                             "result": result
                         }
-                        yield f"data: {json.dumps(email_complete_progress)}\n\n"
+                        json_data = json.dumps(email_complete_progress, ensure_ascii=False)
+                        yield f"data: {json_data}\n\n"
                             
                     except Exception as email_error:
                         logger.error(f"Failed to generate email for {result['filename']}: {str(email_error)}")
@@ -524,7 +531,8 @@ async def process_resumes_stream(
                             "percentage": email_progress_start + int(((email_index + 1) / total_results) * email_progress_range),
                             "result": result
                         }
-                        yield f"data: {json.dumps(email_error_progress)}\n\n"
+                        json_data = json.dumps(email_error_progress, ensure_ascii=False)
+                        yield f"data: {json_data}\n\n"
         
         # Send final results - 100% complete
         final_data = {
@@ -532,15 +540,17 @@ async def process_resumes_stream(
             "results": results,
             "percentage": 100
         }
-        yield f"data: {json.dumps(final_data)}\n\n"
+        json_data = json.dumps(final_data, ensure_ascii=False)
+        yield f"data: {json_data}\n\n"
         
     except Exception as e:
-        logger.error(f"Error in resume processing stream: {str(e)}")
+        logger.error(f"Error in resume processing stream: {str(e)}", exc_info=True)
         error_data = {
             "type": "error",
             "error": str(e)
         }
-        yield f"data: {json.dumps(error_data)}\n\n"
+        json_data = json.dumps(error_data, ensure_ascii=False)
+        yield f"data: {json_data}\n\n"
 
 @app.post("/api/resumes/analyze-stream", tags=["Resume Analysis"])
 async def analyze_resumes_stream(

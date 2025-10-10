@@ -157,7 +157,7 @@ const ResumeUpload: React.FC = () => {
                                 return {
                                     ...file,
                                     status: fileStatus,
-                                    progress: percentage,
+                                    progress: 100, // Individual file is 100% when status updates arrive
                                     error: update.error
                                 };
                             }
@@ -176,7 +176,7 @@ const ResumeUpload: React.FC = () => {
                     }
                 } else if (update.type === 'complete') {
                     // All done - use percentage from backend or default to 100%
-                    setUploadProgress(update.percentage || 100);
+                    setUploadProgress(100);
 
                     if (update.results && update.results.length > 0) {
                         const results = update.results.map(result => ({
