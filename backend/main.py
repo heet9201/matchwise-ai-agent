@@ -6,6 +6,7 @@ from typing import List, Optional
 import uvicorn
 import os
 import logging
+import datetime
 from dotenv import load_dotenv
 from app.models import JobDescription, ResumeAnalysis
 from app.services.ai_service import AIService
@@ -23,7 +24,9 @@ load_dotenv()
 app = FastAPI(
     title="Recruitment AI Agent",
     description="API for processing job descriptions and analyzing resumes using AI",
-    version="1.0.0"
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
 # Configure CORS
@@ -54,6 +57,60 @@ async def validation_exception_handler(request, exc):
             error=str(exc)
         ).dict()
     )
+
+@app.get("/", response_model=APIResponse)
+async def root():
+    """Root endpoint providing API information"""
+    return APIResponse(
+        success=True,
+        message="Welcome to Recruitment AI Agent API",
+        data={
+            "name": "Recruitment AI Agent",
+            "version": "1.0.0",
+            "description": "AI-powered recruitment assistant for job description generation and resume analysis",
+            "endpoints": {
+                "docs": "/docs",
+                "redoc": "/redoc",
+                "health": "/health",
+                "api_root": "/api"
+            }
+        }
+    )
+
+@app.get("/health", response_model=APIResponse)
+async def health_check():
+    """Health check endpoint for monitoring and status verification"""
+    try:
+        # Check if all services are initialized
+        services_status = {
+            "ai_service": bool(ai_service),
+            "file_service": bool(file_service),
+            "email_service": bool(email_service)
+        }
+        
+        all_services_healthy = all(services_status.values())
+        
+        return APIResponse(
+            success=all_services_healthy,
+            message="Service health status",
+            data={
+                "status": "healthy" if all_services_healthy else "degraded",
+                "services": services_status,
+                "timestamp": datetime.datetime.utcnow().isoformat(),
+                "environment": os.getenv("ENV", "development")
+            }
+        )
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return APIResponse(
+            success=False,
+            message="Health check failed",
+            error=str(e),
+            data={
+                "status": "unhealthy",
+                "timestamp": datetime.datetime.utcnow().isoformat()
+            }
+        )
 
 @app.post("/api/job-description/generate", response_model=APIResponse)
 async def generate_job_description(

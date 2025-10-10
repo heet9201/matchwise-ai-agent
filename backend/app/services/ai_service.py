@@ -41,16 +41,22 @@ class AIService(BaseAIService):
         prompt = f"""Analyze this resume against the job description carefully and provide:
         1. A matching score out of 100
         2. List of technically relevant required skills that are missing from the resume
-        3. Brief remarks about the candidate's fit
+        3. Brief, specific remarks about strengths and areas for improvement
 
-        Important Instructions for Missing Skills:
-        - First, identify all technical and role-specific skills required in the job description
-        - Then, check which of these specific skills are not mentioned in the resume
-        - Only list technically relevant or role-specific missing skills
-        - Do not include soft skills, general experience, or generic qualifications
-        - If no relevant technical skills are missing, simply provide an empty list
-        - Format missing skills as a comma-separated list, or 'none' if no relevant skills are missing
-        - Never return an empty list for missing skills
+        Important Instructions for Analysis:
+        - For Missing Skills:
+          * Only include technical and role-specific skills missing from the resume
+          * Format as a comma-separated list
+          * If no relevant technical skills are missing, write 'none'
+          * Never return an empty list
+        
+        - For Remarks:
+          * Provide 2-3 brief, specific points
+          * Format as short phrases separated by commas
+          * Start with strengths, then areas for improvement
+          * Use format like: "Strong in X, Experienced in Y, Lacks Z"
+          * Be specific about technologies, domains, or skills
+          * Keep each point under 6 words
         
         Job Description:
         {job_description}
@@ -60,8 +66,8 @@ class AIService(BaseAIService):
         
         Format your response EXACTLY as follows:
         Score: [number between 0-100]
-        Missing Skills: [at least 2-3 skills separated by commas]
-        Remarks: [detailed explanation including strengths and areas for improvement]
+        Missing Skills: [skills separated by commas]
+        Remarks: [brief points separated by commas]
         """
 
         result = await self.get_completion(prompt, "resume_analysis")

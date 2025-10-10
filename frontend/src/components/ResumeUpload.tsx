@@ -83,7 +83,11 @@ const ResumeUpload: React.FC = () => {
             });
 
             const response = await apiService.analyzeResumes(formData);
-            const results: AnalysisResult[] = response.data?.results || [];
+            const rawResults = response.data?.results || [];
+            const results: AnalysisResult[] = rawResults.map(result => ({
+                ...result,
+                is_best_match: (result as any).is_best_match ?? false // Set default to false if not provided by API
+            }));
 
             if (response.success && results.length > 0) {
                 setResults(results);

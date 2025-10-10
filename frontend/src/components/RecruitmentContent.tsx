@@ -7,9 +7,11 @@ import JobDescriptionDisplay from './JobDescriptionDisplay';
 import ResumeUpload from './ResumeUpload';
 import ResultsDisplay from './ResultsDisplay';
 import { useSettings } from '../contexts/SettingsContext';
+import { useResume } from '../contexts/ResumeContext';
 
 const RecruitmentContent: React.FC = () => {
     const { settings, setSettings } = useSettings();
+    const { results } = useResume();
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -21,7 +23,10 @@ const RecruitmentContent: React.FC = () => {
             <JobDescriptionInput />
             <JobDescriptionDisplay />
             <ResumeUpload />
-            <ResultsDisplay />
+            <ResultsDisplay results={(results || []).map(result => ({
+                ...result,
+                is_best_match: result.is_best_match || false  // Ensure is_best_match is never undefined
+            }))} />
         </Box>
     );
 };

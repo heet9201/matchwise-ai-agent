@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="32" height="32" rx="6" fill="#2196F3" />
+
+    <!-- AI and Person elements -->
+    <g fill="none" stroke="white" stroke-width="2">
+        <!-- Binary/Circuit pattern -->
+        <line x1="8" y1="8" x2="24" y2="8" />
+        <line x1="8" y1="24" x2="24" y2="24" />
+        <line x1="16" y1="8" x2="16" y2="24" />
+
+        <!-- Stylized person -->
+        <circle cx="16" cy="12" r="4" stroke="white" fill="white" />
+        <path d="M10 24C10 20.6863 12.6863 18 16 18C19.3137 18 22 20.6863 22 24" stroke="white"
+            fill="white" />
+    </g>
+</svg>

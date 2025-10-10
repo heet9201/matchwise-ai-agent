@@ -3,8 +3,8 @@ export interface AnalysisResult {
   score: number;
   missing_skills: string[];
   remarks: string;
+  is_best_match: boolean;
   email?: string;
   email_type?: "acceptance" | "rejection";
   email_error?: string;
-  is_best_match?: boolean;
 }
