@@ -37,21 +37,60 @@ class BaseAIService:
     }
 
     def __init__(self):
-        groq_api_key = os.getenv("GROQ_API_KEY")
-        if not groq_api_key:
-            raise ValueError("GROQ_API_KEY environment variable is not set")
-        self.client = AsyncGroq(api_key=groq_api_key)
+        # Initialize API key management
+        self._api_keys = self._load_api_keys()
+        self._current_key_index = 0
+        self._failed_keys = {}
+        self.client = AsyncGroq(api_key=self._get_current_key())
+
+    def _load_api_keys(self) -> List[str]:
+        """Load API keys from environment variables"""
+        keys = []
+        i = 1
+        while True:
+            key = os.getenv(f'GROQ_API_KEY_{i}')
+            if not key:
+                break
+            keys.append(key)
+            i += 1
+        if not keys:
+            raise ValueError("No API keys found in environment variables")
+        return keys
+
+    def _get_current_key(self) -> str:
+        """Get the current API key"""
+        return self._api_keys[self._current_key_index]
+
+    def _next_key(self) -> Optional[str]:
+        """Rotate to the next available API key"""
+        original_index = self._current_key_index
+        while True:
+            self._current_key_index = (self._current_key_index + 1) % len(self._api_keys)
+            current_key = self._get_current_key()
+            
+            # Check if the key is not failed or if its failure timeout has expired
+            if current_key not in self._failed_keys or \
+               (datetime.now() - self._failed_keys[current_key]).total_seconds() > 3600:
+                if current_key in self._failed_keys:
+                    del self._failed_keys[current_key]
+                return current_key
+            
+            # If we've tried all keys, reset and return None
+            if self._current_key_index == original_index:
+                return None
+
+    def _mark_key_failed(self, key: str):
+        """Mark an API key as failed"""
+        self._failed_keys[key] = datetime.now()
 
     async def _try_model_completion(self, messages: List[dict], model: str, **kwargs) -> Optional[str]:
-        """Try to get completion from a specific model with timeout handling"""
-        try:
-            # Minimal timeout settings
-            timeout = kwargs.pop('timeout', 10)  # 10 seconds timeout
-            retry_delay = kwargs.pop('retry_delay', 1)  # 1 second retry delay
-            max_retries = kwargs.pop('max_retries', 1)  # Only 1 retry per model
-
+        """Try to get completion from a specific model with timeout handling and API key rotation"""
+        timeout = kwargs.pop('timeout', 10)  # 10 seconds timeout
+        retry_delay = kwargs.pop('retry_delay', 1)  # 1 second retry delay
+        max_retries = kwargs.pop('max_retries', 3)  # Increased retries for API key rotation
+        
+        for attempt in range(max_retries):
             try:
-                # Quick check if model is responsive
                 chat_completion = await asyncio.wait_for(
                     self.client.chat.completions.create(
                         model=model,
@@ -61,14 +100,46 @@ class BaseAIService:
                     timeout=timeout
                 )
                 return chat_completion.choices[0].message.content
+                
             except (asyncio.TimeoutError, Exception) as e:
-                # Immediately log and return None to try next model
-                logger.warning(f"Model {model} not responsive, switching to next model. Error: {str(e)}")
+                error_str = str(e).lower()
+                current_key = self._get_current_key()
+                
+                # Check for API key related errors
+                if any(err in error_str for err in [
+                    "quota exceeded",
+                    "invalid api key",
+                    "rate limit",
+                    "authorization",
+                    "authenticate"
+                ]):
+                    logger.warning(f"API key error: {str(e)}")
+                    self._mark_key_failed(current_key)
+                    next_key = self._next_key()
+                    
+                    if next_key:
+                        logger.info("Switching to next API key")
+                        self.client = AsyncGroq(api_key=next_key)
+                        await asyncio.sleep(retry_delay)
+                        continue
+                    else:
+                        logger.error("No more API keys available")
+                        raise Exception("All API keys exhausted or invalid")
+                
+                # For model-specific errors, try next model
+                if "model" in error_str:
+                    logger.warning(f"Model {model} not responsive, will try next model. Error: {str(e)}")
+                    return None
+                
+                # For other errors, retry with same key if attempts remain
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(retry_delay * (attempt + 1))  # Exponential backoff
+                    continue
+                
+                logger.error(f"Failed to get completion after {max_retries} attempts: {str(e)}")
                 return None
-
-        except Exception as e:
-            logger.warning(f"Failed to get completion from model {model}: {str(e)}")
-            return None
+                
+        return None
 
     async def get_completion(
         self, 

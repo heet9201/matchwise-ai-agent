@@ -17,6 +17,7 @@ import {
     LinearProgress,
     IconButton,
     Stack,
+    Chip,
 } from '@mui/material';
 import { useDropzone } from 'react-dropzone';
 import { useJobDescription } from '../contexts/JobDescriptionContext';
@@ -28,12 +29,14 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
-import type { AnalysisResult } from '../types/analysis';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
 interface UploadedFile {
     file: File;
-    status: 'pending' | 'uploading' | 'success' | 'error';
+    status: 'pending' | 'processing' | 'analyzing' | 'analyzed' | 'generating_email' | 'success' | 'error';
     error?: string;
+    progress?: number;
+    startTime?: number;
 }
 
 const ResumeUpload: React.FC = () => {
@@ -49,19 +52,60 @@ const ResumeUpload: React.FC = () => {
         setUploadedFiles(files => files.filter((_, i) => i !== index));
     }, []);
 
+    const handleClearAll = useCallback(() => {
+        setUploadedFiles([]);
+        setResults([]);
+        setUploadProgress(0);
+        setError(null);
+    }, [setResults]);
+
     const { settings } = useSettings();
 
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const MAX_FILES = 10;
+
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
-        if (acceptedFiles.length === 0 || !jobDescription) return;
+        if (!jobDescription) {
+            setError('Please input a job description first');
+            return;
+        }
+
+        if (acceptedFiles.length === 0) return;
+
+        // Clear previous results and reset state for new upload session
+        const hasCompletedFiles = uploadedFiles.some(f => f.status === 'success' || f.status === 'error');
+        const pendingFiles = uploadedFiles.filter(f => f.status === 'pending');
+        
+        // If there are completed files, start fresh. If only pending files, allow adding more
+        const baseFiles = hasCompletedFiles ? [] : pendingFiles;
+
+        // Check total number of files
+        if (baseFiles.length + acceptedFiles.length > MAX_FILES) {
+            setError(`Maximum ${MAX_FILES} files allowed`);
+            return;
+        }
+
+        // Validate file sizes
+        const oversizedFiles = acceptedFiles.filter(file => file.size > MAX_FILE_SIZE);
+        if (oversizedFiles.length > 0) {
+            setError(`Some files exceed the 10MB size limit: ${oversizedFiles.map(f => f.name).join(', ')}`);
+            return;
+        }
 
         const newFiles = acceptedFiles.map(file => ({
             file,
             status: 'pending' as const,
         }));
 
-        setUploadedFiles(prev => [...prev, ...newFiles]);
+        // If starting fresh, also reset results and progress
+        if (hasCompletedFiles) {
+            setResults([]);
+            setUploadProgress(0);
+        }
+
+        setUploadedFiles([...baseFiles, ...newFiles]);
         setShowUploadDialog(true);
-    }, [jobDescription]);
+    }, [jobDescription, uploadedFiles, setResults]);
 
     const processFiles = useCallback(async () => {
         if (!jobDescription || uploadedFiles.length === 0) return;
@@ -82,35 +126,90 @@ const ResumeUpload: React.FC = () => {
                 formData.append('resumes', f.file);
             });
 
-            const response = await apiService.analyzeResumes(formData);
-            const rawResults = response.data?.results || [];
-            const results: AnalysisResult[] = rawResults.map(result => ({
-                ...result,
-                is_best_match: (result as any).is_best_match ?? false // Set default to false if not provided by API
-            }));
+            let allResults: any[] = [];
 
-            if (response.success && results.length > 0) {
-                setResults(results);
+            // Use streaming API with progress updates
+            await apiService.analyzeResumesStream(formData, (update) => {
+                if (update.type === 'progress') {
+                    const percentage = update.percentage || 0;
+                    setUploadProgress(percentage);
 
-                // Update file statuses based on analysis results
-                setUploadedFiles(files =>
-                    files.map(file => {
-                        const result = response.data?.results.find(r => r.filename === file.file.name);
-                        if (result) {
-                            return {
-                                ...file,
-                                status: result.score >= 70 ? 'success' : 'error',
-                                error: result.score < 70 ? 'Score too low' : undefined
-                            };
+                    // Update individual file status based on the progress status
+                    setUploadedFiles(files =>
+                        files.map(file => {
+                            if (file.file.name === update.filename) {
+                                let fileStatus: UploadedFile['status'] = 'pending';
+
+                                if (update.status === 'processing') {
+                                    fileStatus = 'processing';
+                                } else if (update.status === 'analyzing') {
+                                    fileStatus = 'analyzing';
+                                } else if (update.status === 'analyzed') {
+                                    fileStatus = 'analyzed';
+                                } else if (update.status === 'generating_email') {
+                                    fileStatus = 'generating_email';
+                                } else if (update.status === 'complete') {
+                                    fileStatus = 'success';
+                                } else if (update.status === 'error') {
+                                    fileStatus = 'error';
+                                }
+
+                                return {
+                                    ...file,
+                                    status: fileStatus,
+                                    progress: percentage,
+                                    error: update.error
+                                };
+                            }
+                            return file;
+                        })
+                    );
+
+                    // Store or update result if available
+                    if (update.result) {
+                        const existingIndex = allResults.findIndex(r => r.filename === update.result?.filename);
+                        if (existingIndex >= 0) {
+                            allResults[existingIndex] = update.result;
+                        } else {
+                            allResults.push(update.result);
                         }
-                        return file;
-                    })
-                );
+                    }
+                } else if (update.type === 'complete') {
+                    // All done - use percentage from backend or default to 100%
+                    setUploadProgress(update.percentage || 100);
 
-                setShowUploadDialog(false);
-            } else {
-                throw new Error(response.error || 'Failed to analyze resumes');
-            }
+                    if (update.results && update.results.length > 0) {
+                        const results = update.results.map(result => ({
+                            ...result,
+                            is_best_match: result.is_best_match ?? false
+                        }));
+                        setResults(results);
+
+                        // Update all file statuses as complete
+                        setUploadedFiles(files =>
+                            files.map(file => {
+                                const result = update.results?.find(r => r.filename === file.file.name);
+                                if (result) {
+                                    return {
+                                        ...file,
+                                        status: 'success',
+                                        progress: 100
+                                    };
+                                }
+                                return file;
+                            })
+                        );
+
+                        // Close dialog after a short delay
+                        setTimeout(() => {
+                            setShowUploadDialog(false);
+                        }, 1000);
+                    }
+                } else if (update.type === 'error') {
+                    throw new Error(update.error || 'Analysis failed');
+                }
+            });
+
         } catch (error) {
             setError(error instanceof Error ? error.message : 'Failed to analyze resumes');
             setUploadedFiles(files =>
@@ -122,9 +221,8 @@ const ResumeUpload: React.FC = () => {
             );
         } finally {
             setIsLoading(false);
-            setUploadProgress(100);
         }
-    }, [jobDescription, uploadedFiles]);
+    }, [jobDescription, uploadedFiles, settings, setResults]);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
@@ -190,12 +288,28 @@ const ResumeUpload: React.FC = () => {
                         </div>
 
                         {uploadedFiles.length > 0 && (
-                            <List sx={{ mt: 2 }}>
-                                {uploadedFiles.map((uploadedFile, index) => (
+                            <>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, mb: 1 }}>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''} ready
+                                    </Typography>
+                                    {uploadedFiles.some(f => f.status === 'success' || f.status === 'error') && !isLoading && (
+                                        <Button
+                                            size="small"
+                                            color="error"
+                                            startIcon={<RestartAltIcon />}
+                                            onClick={handleClearAll}
+                                        >
+                                            Clear All & Start New
+                                        </Button>
+                                    )}
+                                </Box>
+                                <List>
+                                    {uploadedFiles.map((uploadedFile, index) => (
                                     <ListItem
                                         key={uploadedFile.file.name + index}
                                         secondaryAction={
-                                            uploadedFile.status !== 'uploading' && (
+                                            uploadedFile.status === 'pending' && (
                                                 <IconButton
                                                     edge="end"
                                                     aria-label="delete"
@@ -209,7 +323,25 @@ const ResumeUpload: React.FC = () => {
                                         <ListItemIcon>
                                             {uploadedFile.status === 'success' && <CheckCircleIcon color="success" />}
                                             {uploadedFile.status === 'error' && <ErrorIcon color="error" />}
-                                            {uploadedFile.status === 'uploading' && <CircularProgress size={24} />}
+                                            {(uploadedFile.status === 'processing' || uploadedFile.status === 'analyzing' || uploadedFile.status === 'analyzed' || uploadedFile.status === 'generating_email') && (
+                                                <Box position="relative" display="inline-flex">
+                                                    <CircularProgress size={24} variant="determinate" value={uploadedFile.progress || 0} />
+                                                    <Box
+                                                        position="absolute"
+                                                        top={0}
+                                                        left={0}
+                                                        bottom={0}
+                                                        right={0}
+                                                        display="flex"
+                                                        alignItems="center"
+                                                        justifyContent="center"
+                                                    >
+                                                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.6rem' }}>
+                                                            {Math.round(uploadedFile.progress || 0)}%
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
+                                            )}
                                             {uploadedFile.status === 'pending' && <UploadFileIcon />}
                                         </ListItemIcon>
                                         <ListItemText
@@ -222,6 +354,7 @@ const ResumeUpload: React.FC = () => {
                                     </ListItem>
                                 ))}
                             </List>
+                            </>
                         )}
                     </>
                 )}
@@ -233,26 +366,111 @@ const ResumeUpload: React.FC = () => {
                 maxWidth="sm"
                 fullWidth
             >
-                <DialogTitle>Analyzing Resumes</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ width: '100%', mt: 2 }}>
-                        <LinearProgress variant="determinate" value={uploadProgress} />
-                        <Typography variant="body2" color="textSecondary" align="center" sx={{ mt: 1 }}>
-                            {isLoading ? 'Processing...' : 'Analysis Complete'}
-                        </Typography>
+                <DialogTitle>
+                    <Box display="flex" alignItems="center" justifyContent="space-between">
+                        <Typography variant="h6">Analyzing Resumes</Typography>
+                        {!isLoading && (
+                            <Chip
+                                label="Complete"
+                                color="success"
+                                icon={<CheckCircleIcon />}
+                                size="small"
+                            />
+                        )}
                     </Box>
-                    <List sx={{ mt: 2 }}>
+                </DialogTitle>
+                <DialogContent>
+                    <Box sx={{ mt: 3, mb: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="subtitle1" gutterBottom>
+                                Overall Progress
+                            </Typography>
+                            <Typography variant="h6" color="primary">
+                                {Math.round(uploadProgress)}%
+                            </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                            <Box sx={{ flexGrow: 1 }}>
+                                <LinearProgress
+                                    variant="determinate"
+                                    value={uploadProgress}
+                                    sx={{
+                                        height: 10,
+                                        borderRadius: 5,
+                                        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                                        '& .MuiLinearProgress-bar': {
+                                            borderRadius: 5,
+                                            backgroundColor: uploadProgress === 100 ? '#4caf50' : '#1976d2'
+                                        }
+                                    }}
+                                />
+                            </Box>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography variant="caption" color="text.secondary">
+                                {uploadedFiles.filter(f => f.status === 'success').length} of {uploadedFiles.length} files processed
+                            </Typography>
+                            {isLoading && (
+                                <Typography variant="caption" color="primary">
+                                    Processing...
+                                </Typography>
+                            )}
+                        </Box>
+                    </Box>
+
+                    <Typography variant="subtitle2" sx={{ mt: 3, mb: 1, fontWeight: 'bold' }}>
+                        Files Status
+                    </Typography>
+                    <List sx={{ mt: 1 }}>
                         {uploadedFiles.map((file, index) => (
-                            <ListItem key={index}>
+                            <ListItem
+                                key={index}
+                                sx={{
+                                    border: '1px solid',
+                                    borderColor: file.status === 'success' ? 'success.light' :
+                                        file.status === 'error' ? 'error.light' :
+                                            (file.status === 'processing' || file.status === 'analyzing' || file.status === 'analyzed' || file.status === 'generating_email') ? 'primary.light' : 'grey.300',
+                                    borderRadius: 1,
+                                    mb: 1,
+                                    backgroundColor: file.status === 'success' ? 'success.lighter' :
+                                        file.status === 'error' ? 'error.lighter' :
+                                            (file.status === 'processing' || file.status === 'analyzing' || file.status === 'analyzed' || file.status === 'generating_email') ? 'primary.lighter' : 'transparent'
+                                }}
+                            >
                                 <ListItemIcon>
                                     {file.status === 'success' && <CheckCircleIcon color="success" />}
                                     {file.status === 'error' && <ErrorIcon color="error" />}
-                                    {file.status === 'uploading' && <CircularProgress size={24} />}
+                                    {(file.status === 'processing' || file.status === 'analyzing' || file.status === 'analyzed' || file.status === 'generating_email') && (
+                                        <CircularProgress size={24} />
+                                    )}
                                     {file.status === 'pending' && <UploadFileIcon />}
                                 </ListItemIcon>
                                 <ListItemText
-                                    primary={file.file.name}
-                                    secondary={file.status === 'error' ? file.error : ''}
+                                    primary={
+                                        <Typography variant="body2" fontWeight="medium">
+                                            {file.file.name}
+                                        </Typography>
+                                    }
+                                    secondary={
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary">
+                                                {file.status === 'error' ? file.error :
+                                                    file.status === 'processing' ? '📄 Extracting text...' :
+                                                        file.status === 'analyzing' ? '🔍 Analyzing resume...' :
+                                                            file.status === 'analyzed' ? '✅ Analysis complete, waiting for email...' :
+                                                                file.status === 'generating_email' ? '✉️ Generating personalized email...' :
+                                                                    file.status === 'success' ? '✓ Completed successfully' :
+                                                                        'Waiting to process'}
+                                            </Typography>
+                                            {(file.status === 'processing' || file.status === 'analyzing' || file.status === 'analyzed' || file.status === 'generating_email') && file.progress !== undefined && (
+                                                <LinearProgress
+                                                    variant="determinate"
+                                                    value={file.progress}
+                                                    sx={{ mt: 0.5, height: 4, borderRadius: 2 }}
+                                                />
+                                            )}
+                                        </Box>
+                                    }
                                 />
                             </ListItem>
                         ))}

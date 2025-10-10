@@ -12,7 +12,8 @@ import {
     Box,
     IconButton,
     Tooltip,
-    Collapse
+    Collapse,
+    Grid
 } from '@mui/material';
 import EmailDisplayDialog from './EmailDisplayDialog';
 import EmailIcon from '@mui/icons-material/Email';
@@ -60,6 +61,18 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
         }
     };
 
+    const { qualifiedCount, avgScore } = useMemo(() => {
+        if (!results.length) return { qualifiedCount: 0, avgScore: 0 };
+
+        const qualified = results.filter(r => r.score >= 70);
+        const total = results.reduce((sum, r) => sum + r.score, 0);
+
+        return {
+            qualifiedCount: qualified.length,
+            avgScore: Math.round(total / results.length)
+        };
+    }, [results]);
+
     const sortedResults = useMemo(() => {
         return [...results].sort((a, b) => {
             if (a.is_best_match !== b.is_best_match) {
@@ -75,6 +88,29 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results }) => {
 
     return (
         <Paper elevation={2}>
+            <Box p={2} mb={2}>
+                <Typography variant="h6" gutterBottom>Analysis Results</Typography>
+                <Grid container spacing={2}>
+                    <Grid item xs={12} sm={4}>
+                        <Paper elevation={3} sx={{ p: 2, bgcolor: 'primary.light', color: 'white' }}>
+                            <Typography variant="subtitle2">Total Candidates</Typography>
+                            <Typography variant="h4">{results.length}</Typography>
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                        <Paper elevation={3} sx={{ p: 2, bgcolor: 'success.light', color: 'white' }}>
+                            <Typography variant="subtitle2">Qualified Candidates</Typography>
+                            <Typography variant="h4">{qualifiedCount}</Typography>
+                        </Paper>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                        <Paper elevation={3} sx={{ p: 2, bgcolor: 'info.light', color: 'white' }}>
+                            <Typography variant="subtitle2">Average Score</Typography>
+                            <Typography variant="h4">{avgScore}%</Typography>
+                        </Paper>
+                    </Grid>
+                </Grid>
+            </Box>
             <TableContainer>
                 <Table>
                     <TableHead>

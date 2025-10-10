@@ -33,10 +33,19 @@ const JobDescriptionInput: React.FC = () => {
     const { jobDescription, setJobDescription } = useJobDescription();
     const { register, handleSubmit, formState: { errors } } = useForm<JDFormData>();
 
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
     const onDrop = async (acceptedFiles: File[]) => {
         if (acceptedFiles.length === 0) return;
 
         const file = acceptedFiles[0];
+
+        // Validate file size
+        if (file.size > MAX_FILE_SIZE) {
+            setError('File size exceeds 10MB limit');
+            return;
+        }
+
         setLoading(true);
         setError(null);
 
@@ -69,7 +78,18 @@ const JobDescriptionInput: React.FC = () => {
         setJobDescription(event.target.value);
     };
 
+    const validateSkills = (skills: string): boolean => {
+        const skillList = skills.split(',').map(skill => skill.trim());
+        return skillList.length >= 2 && skillList.every(skill => skill.length >= 2);
+    };
+
     const onGenerateSubmit = async (data: JDFormData) => {
+        // Validate skills format
+        if (!validateSkills(data.must_have_skills)) {
+            setError('Please enter at least 2 valid skills, separated by commas');
+            return;
+        }
+
         setLoading(true);
         setError(null);
 
