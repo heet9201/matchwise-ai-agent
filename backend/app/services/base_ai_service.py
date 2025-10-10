@@ -3,7 +3,6 @@ from typing import List, Optional, Dict
 import os
 import logging
 import asyncio
-from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +39,6 @@ class BaseAIService:
         # Initialize API key management
         self._api_keys = self._load_api_keys()
         self._current_key_index = 0
-        self._failed_keys = {}
         self.client = AsyncGroq(api_key=self._get_current_key())
 
     def _load_api_keys(self) -> List[str]:
@@ -63,82 +61,124 @@ class BaseAIService:
 
     def _next_key(self) -> Optional[str]:
         """Rotate to the next available API key"""
-        original_index = self._current_key_index
-        while True:
-            self._current_key_index = (self._current_key_index + 1) % len(self._api_keys)
-            current_key = self._get_current_key()
-            
-            # Check if the key is not failed or if its failure timeout has expired
-            if current_key not in self._failed_keys or \
-               (datetime.now() - self._failed_keys[current_key]).total_seconds() > 3600:
-                if current_key in self._failed_keys:
-                    del self._failed_keys[current_key]
-                return current_key
-            
-            # If we've tried all keys, reset and return None
-            if self._current_key_index == original_index:
-                return None
-
-    def _mark_key_failed(self, key: str):
-        """Mark an API key as failed"""
-        self._failed_keys[key] = datetime.now()
+        self._current_key_index = (self._current_key_index + 1) % len(self._api_keys)
+        return self._get_current_key()
 
     async def _try_model_completion(self, messages: List[dict], model: str, **kwargs) -> Optional[str]:
-        """Try to get completion from a specific model with timeout handling and API key rotation"""
+        """
+        Try to get completion from a specific model, cycling through all API keys if needed.
+        This prioritizes model quality over API key - will try all keys before giving up on a model.
+        Implements retry with exponential backoff when all keys hit rate limits.
+        """
         timeout = kwargs.pop('timeout', 10)  # 10 seconds timeout
-        retry_delay = kwargs.pop('retry_delay', 1)  # 1 second retry delay
-        max_retries = kwargs.pop('max_retries', 3)  # Increased retries for API key rotation
+        retry_delay = kwargs.pop('retry_delay', 2)  # 1 second initial retry delay
+        max_retry_attempts = kwargs.pop('max_retry_attempts', 2)  # Number of full retry cycles
         
-        for attempt in range(max_retries):
-            try:
-                chat_completion = await asyncio.wait_for(
-                    self.client.chat.completions.create(
-                        model=model,
-                        messages=messages,
-                        **kwargs
-                    ),
-                    timeout=timeout
-                )
-                return chat_completion.choices[0].message.content
+        # Store original key index to restore later
+        original_key_index = self._current_key_index
+        
+        # Track rate limit errors across all keys
+        rate_limited_count = 0
+        
+        # Try multiple cycles if all keys are rate limited
+        for retry_cycle in range(max_retry_attempts):
+            if retry_cycle > 0:
+                # Exponential backoff: wait longer on each retry cycle
+                wait_time = retry_delay * (2 ** retry_cycle)
+                logger.info(f"⏳ All keys rate-limited for model '{model}'. Waiting {wait_time}s before retry cycle {retry_cycle + 1}/{max_retry_attempts}")
+                await asyncio.sleep(wait_time)
+                rate_limited_count = 0  # Reset counter for new cycle
+            
+            # Try each API key index for this model
+            for key_attempt in range(len(self._api_keys)):
+                # Calculate which key index to try
+                key_index = (original_key_index + key_attempt) % len(self._api_keys)
+                api_key = self._api_keys[key_index]
                 
-            except (asyncio.TimeoutError, Exception) as e:
-                error_str = str(e).lower()
-                current_key = self._get_current_key()
-                
-                # Check for API key related errors
-                if any(err in error_str for err in [
-                    "quota exceeded",
-                    "invalid api key",
-                    "rate limit",
-                    "authorization",
-                    "authenticate"
-                ]):
-                    logger.warning(f"API key error: {str(e)}")
-                    self._mark_key_failed(current_key)
-                    next_key = self._next_key()
+                try:
+                    # Update client to use this specific key
+                    self._current_key_index = key_index
+                    self.client = AsyncGroq(api_key=api_key)
                     
-                    if next_key:
-                        logger.info("Switching to next API key")
-                        self.client = AsyncGroq(api_key=next_key)
+                    logger.info(f"Trying model '{model}' with API key #{key_index + 1}/{len(self._api_keys)}")
+                    
+                    chat_completion = await asyncio.wait_for(
+                        self.client.chat.completions.create(
+                            model=model,
+                            messages=messages,
+                            **kwargs
+                        ),
+                        timeout=timeout
+                    )
+                        
+                    logger.info(f"✓ Successfully got response from model '{model}' with API key #{key_index + 1}")
+                    return chat_completion.choices[0].message.content
+                    
+                except asyncio.TimeoutError:
+                    logger.warning(f"⏱ Timeout with API key #{key_index + 1} for model '{model}'")
+                    await asyncio.sleep(retry_delay)
+                    continue
+                    
+                except Exception as e:
+                    error_str = str(e).lower()
+                    
+                    # Check for rate limit errors specifically
+                    if any(err in error_str for err in ["rate limit", "429", "tokens per day", "tpd"]):
+                        rate_limited_count += 1
+                        logger.warning(f"⚠ API key #{key_index + 1} rate limited for model '{model}': {str(e)[:150]}")
+                        
+                        # If all keys are rate limited and we haven't maxed out retries, break to retry cycle
+                        if rate_limited_count >= len(self._api_keys) and retry_cycle < max_retry_attempts - 1:
+                            break
+                        
                         await asyncio.sleep(retry_delay)
                         continue
+                    
+                    # Check for other API key related errors (quota, auth issues)
+                    elif any(err in error_str for err in [
+                        "quota exceeded",
+                        "invalid api key",
+                        "authorization",
+                        "authenticate",
+                        "forbidden",
+                        "401",
+                        "403"
+                    ]):
+                        logger.warning(f"⚠ API key #{key_index + 1} error for model '{model}': {str(e)[:150]}")
+                        await asyncio.sleep(retry_delay)
+                        continue
+                    
+                    # For model-specific errors (model not available, not found, etc.)
+                    elif any(err in error_str for err in ["model", "not found", "does not exist", "not available"]):
+                        logger.warning(f"✗ Model '{model}' error: {str(e)[:150]}. Will try next model.")
+                        # Restore original key index before returning
+                        self._current_key_index = original_key_index
+                        self.client = AsyncGroq(api_key=self._api_keys[original_key_index])
+                        return None
+                    
+                    # For other errors, log and try next key
                     else:
-                        logger.error("No more API keys available")
-                        raise Exception("All API keys exhausted or invalid")
-                
-                # For model-specific errors, try next model
-                if "model" in error_str:
-                    logger.warning(f"Model {model} not responsive, will try next model. Error: {str(e)}")
-                    return None
-                
-                # For other errors, retry with same key if attempts remain
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(retry_delay * (attempt + 1))  # Exponential backoff
-                    continue
-                
-                logger.error(f"Failed to get completion after {max_retries} attempts: {str(e)}")
-                return None
-                
+                        logger.error(f"✗ Unexpected error with API key #{key_index + 1} for model '{model}': {str(e)[:150]}")
+                        await asyncio.sleep(retry_delay)
+                        continue
+            
+            # If all keys were rate limited but we have more retry attempts, continue to next cycle
+            if rate_limited_count >= len(self._api_keys) and retry_cycle < max_retry_attempts - 1:
+                continue
+            else:
+                # Either not all keys rate limited, or we've exhausted retries
+                break
+        
+        # All API keys exhausted for this model (even after retries)
+        # Restore original key index for next model attempt
+        self._current_key_index = original_key_index
+        self.client = AsyncGroq(api_key=self._api_keys[original_key_index])
+        
+        if rate_limited_count >= len(self._api_keys):
+            logger.warning(f"⚠ All {len(self._api_keys)} API keys rate-limited for model '{model}' after {max_retry_attempts} retry cycles")
+        else:
+            logger.warning(f"⚠ All {len(self._api_keys)} API keys exhausted for model '{model}'")
+        
         return None
 
     async def get_completion(
@@ -149,7 +189,10 @@ class BaseAIService:
         **kwargs
     ) -> str:
         """
-        Get completion with fallback mechanism and predefined parameters based on type
+        Get completion with model-first fallback mechanism.
+        Prioritizes trying all API keys for each model before moving to the next model.
+        This ensures we get the best quality response by prioritizing better models.
+        
         Args:
             prompt: The prompt to send to the model
             completion_type: Type of completion ('job_description', 'resume_analysis', or 'email')
@@ -166,18 +209,26 @@ class BaseAIService:
         ]
 
         last_error = None
-        for model in self.MODELS:
+        for model_index, model in enumerate(self.MODELS, 1):
             try:
-                logger.info(f"Trying model {model} for {completion_type}")
+                logger.info(f"[Model {model_index}/{len(self.MODELS)}] Trying model: {model} for {completion_type}")
                 result = await self._try_model_completion(messages, model, **params)
                 if result:
-                    logger.info(f"Successfully used model {model} for {completion_type}")
+                    logger.info(f"✓ Successfully completed {completion_type} using model: {model}")
                     return result
+                else:
+                    logger.warning(f"✗ Model {model} failed for {completion_type}, trying next model...")
             except Exception as e:
                 last_error = e
+                logger.error(f"✗ Exception with model {model}: {str(e)}")
                 continue
 
-        raise Exception(f"All models failed for {completion_type}. Last error: {str(last_error)}")
+        # If we get here, all models have been exhausted
+        error_msg = f"All {len(self.MODELS)} models exhausted for {completion_type}."
+        if last_error:
+            error_msg += f" Last error: {str(last_error)}"
+        logger.error(error_msg)
+        raise Exception(error_msg)
 
     def parse_structured_response(self, result: str, keys: List[str]) -> Dict:
         """Parse structured response with given keys and handle various formats"""

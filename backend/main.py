@@ -10,7 +10,8 @@ import logging
 import datetime
 import json
 import asyncio
-from dotenv import load_dotenv
+import httpx
+from dotenv import load_dotenv, dotenv_values
 from app.models import JobDescription, ResumeAnalysis
 from app.services.ai_service import AIService
 from app.services.file_service import FileService
@@ -73,6 +74,132 @@ try:
 except Exception as e:
     logger.error(f"Error initializing services: {str(e)}")
     raise ServiceInitializationError(f"Failed to initialize services: {str(e)}")
+
+# Background task control
+keep_alive_task = None
+shutdown_event = asyncio.Event()
+
+def get_env_value(key: str, default: str = None) -> str:
+    """
+    Get environment variable value by reloading .env file.
+    This ensures we always get the latest value from .env.
+    """
+    # Get the .env file path
+    env_path = os.path.join(os.path.dirname(__file__), '.env')
+    if os.path.exists(env_path):
+        # Reload .env values
+        env_values = dotenv_values(env_path)
+        return env_values.get(key, default)
+    return os.getenv(key, default)
+
+async def keep_alive_ping():
+    """
+    Background task that periodically pings both backend and frontend URLs to keep them alive.
+    Dynamically reads the frequency and URLs from .env file each cycle.
+    """
+    logger.info("🔄 Keep-alive background task started")
+    
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        while not shutdown_event.is_set():
+            try:
+                # Dynamically load configuration from .env (fresh read each time)
+                keep_alive_enabled = get_env_value('KEEP_ALIVE_ENABLED', 'false').lower() == 'true'
+                
+                if not keep_alive_enabled:
+                    logger.debug("Keep-alive is disabled in .env, waiting 60s before checking again")
+                    await asyncio.sleep(60)
+                    continue
+                
+                # Get frequency in minutes and convert to seconds
+                frequency_minutes = int(get_env_value('KEEP_ALIVE_FREQUENCY_MINUTES', '5'))
+                frequency_seconds = frequency_minutes * 60
+                
+                # Get backend and frontend URLs
+                backend_url = get_env_value('KEEP_ALIVE_BACKEND_URL', 'http://localhost:8000')
+                frontend_url = get_env_value('KEEP_ALIVE_FRONTEND_URL', 'http://localhost:3000')
+                
+                logger.info(f"⏰ Keep-alive: Pinging backend and frontend (frequency: {frequency_minutes} minutes)")
+                
+                # Ping backend
+                try:
+                    backend_response = await client.get(f"{backend_url}/health")
+                    if backend_response.status_code == 200:
+                        logger.info(f"✓ Backend ping successful: {backend_url} (status: {backend_response.status_code})")
+                    else:
+                        logger.warning(f"⚠ Backend ping returned status: {backend_response.status_code}")
+                except httpx.TimeoutException:
+                    logger.warning(f"⏱ Backend ping timeout: {backend_url}")
+                except httpx.ConnectError:
+                    logger.warning(f"⚠ Backend ping connection error: {backend_url}")
+                except Exception as e:
+                    logger.error(f"❌ Backend ping error: {str(e)}")
+                
+                # Ping frontend
+                try:
+                    frontend_response = await client.get(frontend_url)
+                    if frontend_response.status_code == 200:
+                        logger.info(f"✓ Frontend ping successful: {frontend_url} (status: {frontend_response.status_code})")
+                    else:
+                        logger.warning(f"⚠ Frontend ping returned status: {frontend_response.status_code}")
+                except httpx.TimeoutException:
+                    logger.warning(f"⏱ Frontend ping timeout: {frontend_url}")
+                except httpx.ConnectError:
+                    logger.warning(f"⚠ Frontend ping connection error: {frontend_url}")
+                except Exception as e:
+                    logger.error(f"❌ Frontend ping error: {str(e)}")
+                
+            except ValueError as e:
+                logger.error(f"❌ Invalid KEEP_ALIVE_FREQUENCY_MINUTES value: {e}")
+                frequency_seconds = 300  # Fallback to 5 minutes
+            except Exception as e:
+                logger.error(f"❌ Keep-alive ping error: {str(e)}")
+            
+            # Wait for the configured frequency or until shutdown
+            try:
+                await asyncio.wait_for(shutdown_event.wait(), timeout=frequency_seconds)
+                break  # If shutdown_event is set, exit the loop
+            except asyncio.TimeoutError:
+                continue  # Timeout means it's time for the next ping
+
+    logger.info("🛑 Keep-alive background task stopped")
+
+@app.on_event("startup")
+async def startup_event():
+    """Start background tasks on application startup"""
+    global keep_alive_task
+    
+    # Check if keep-alive is enabled
+    keep_alive_enabled = get_env_value('KEEP_ALIVE_ENABLED', 'false').lower() == 'true'
+    
+    if keep_alive_enabled:
+        frequency_minutes = get_env_value('KEEP_ALIVE_FREQUENCY_MINUTES', '5')
+        backend_url = get_env_value('KEEP_ALIVE_BACKEND_URL', 'http://localhost:8000')
+        frontend_url = get_env_value('KEEP_ALIVE_FRONTEND_URL', 'http://localhost:3000')
+        logger.info(f"🚀 Starting keep-alive task (frequency: {frequency_minutes} minutes)")
+        logger.info(f"   Backend URL: {backend_url}")
+        logger.info(f"   Frontend URL: {frontend_url}")
+        keep_alive_task = asyncio.create_task(keep_alive_ping())
+    else:
+        logger.info("ℹ️ Keep-alive is disabled. Set KEEP_ALIVE_ENABLED=true in .env to enable")
+
+@app.on_event("shutdown")
+async def shutdown_event_handler():
+    """Clean up background tasks on application shutdown"""
+    global keep_alive_task
+    
+    logger.info("🛑 Shutting down application...")
+    
+    # Signal the keep-alive task to stop
+    shutdown_event.set()
+    
+    # Wait for the task to finish
+    if keep_alive_task:
+        try:
+            await asyncio.wait_for(keep_alive_task, timeout=5.0)
+            logger.info("✓ Keep-alive task stopped gracefully")
+        except asyncio.TimeoutError:
+            logger.warning("⚠ Keep-alive task did not stop in time, cancelling")
+            keep_alive_task.cancel()
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
