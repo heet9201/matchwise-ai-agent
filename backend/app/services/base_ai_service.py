@@ -3,6 +3,7 @@ from typing import List, Optional, Dict
 import os
 import logging
 import asyncio
+from dotenv import dotenv_values
 
 logger = logging.getLogger(__name__)
 
@@ -37,12 +38,76 @@ class BaseAIService:
 
     def __init__(self):
         # Initialize API key management
-        self._api_keys = self._load_api_keys()
+        # Note: API keys will be reloaded dynamically on each completion request
+        self._api_keys = []
         self._current_key_index = 0
-        self.client = AsyncGroq(api_key=self._get_current_key())
+        self.client = None
+        # Load keys initially to ensure at least one exists
+        self._refresh_api_keys()
+
+    def _refresh_api_keys(self) -> None:
+        """
+        Reload API keys from .env file dynamically.
+        This allows changing API keys without rebuilding/redeploying the application.
+        """
+        # Get the .env file path relative to this file
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        backend_dir = os.path.dirname(os.path.dirname(current_dir))
+        env_path = os.path.join(backend_dir, '.env')
+        
+        keys = []
+        
+        # Try to load from .env file first (supports runtime updates)
+        if os.path.exists(env_path):
+            env_values = dotenv_values(env_path)
+            i = 1
+            while True:
+                key = env_values.get(f'GROQ_API_KEY_{i}')
+                if not key:
+                    break
+                keys.append(key)
+                i += 1
+            
+            if keys:
+                logger.info(f"🔄 Loaded {len(keys)} API keys from .env file (supports dynamic updates)")
+        
+        # Fallback to system environment variables if .env not found or empty
+        if not keys:
+            i = 1
+            while True:
+                key = os.getenv(f'GROQ_API_KEY_{i}')
+                if not key:
+                    break
+                keys.append(key)
+                i += 1
+            
+            if keys:
+                logger.info(f"Loaded {len(keys)} API keys from environment variables")
+        
+        if not keys:
+            raise ValueError("No API keys found in .env file or environment variables")
+        
+        # Update internal state
+        old_count = len(self._api_keys)
+        self._api_keys = keys
+        
+        # Reset key index if it's out of bounds
+        if self._current_key_index >= len(self._api_keys):
+            self._current_key_index = 0
+        
+        # Update client with current key
+        if self._api_keys:
+            self.client = AsyncGroq(api_key=self._get_current_key())
+        
+        # Log if keys changed
+        if old_count != len(keys):
+            logger.info(f"✓ API keys updated: {old_count} → {len(keys)} keys")
 
     def _load_api_keys(self) -> List[str]:
-        """Load API keys from environment variables"""
+        """
+        Load API keys from environment variables.
+        Deprecated: Use _refresh_api_keys() instead for dynamic reloading.
+        """
         keys = []
         i = 1
         while True:
@@ -193,12 +258,22 @@ class BaseAIService:
         Prioritizes trying all API keys for each model before moving to the next model.
         This ensures we get the best quality response by prioritizing better models.
         
+        Dynamically reloads API keys from .env file on each call, allowing runtime updates
+        without rebuilding or redeploying the application.
+        
         Args:
             prompt: The prompt to send to the model
             completion_type: Type of completion ('job_description', 'resume_analysis', or 'email')
             custom_system_message: Optional custom system message to override default
             **kwargs: Additional parameters to override defaults
         """
+        # Refresh API keys from .env file before each completion
+        # This allows changing keys without restart/redeploy
+        try:
+            self._refresh_api_keys()
+        except Exception as e:
+            logger.warning(f"Failed to refresh API keys, using existing: {str(e)}")
+        
         params = self.DEFAULT_PARAMS.get(completion_type, {}).copy()
         params.update(kwargs)  # Override with any custom parameters
 
