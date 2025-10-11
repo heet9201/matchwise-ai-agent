@@ -47,51 +47,50 @@ class BaseAIService:
 
     def _refresh_api_keys(self) -> None:
         """
-        Reload API keys from .env file dynamically.
-        This allows changing API keys without rebuilding/redeploying the application.
+        Reload API keys dynamically.
+        Priority: 1) Environment variables (Render/production), 2) .env file (local dev)
         """
-        # Get the .env file path relative to this file
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        backend_dir = os.path.dirname(os.path.dirname(current_dir))
-        env_path = os.path.join(backend_dir, '.env')
-        
         keys = []
         
-        # Try to load from .env file first (supports runtime updates)
-        if os.path.exists(env_path):
-            env_values = dotenv_values(env_path)
-            i = 1
-            while True:
-                key = env_values.get(f'GROQ_API_KEY_{i}')
-                if not key:
-                    break
-                keys.append(key)
-                i += 1
-            
-            if keys:
-                logger.info(f"🔄 Loaded {len(keys)} API keys from .env file (supports dynamic updates)")
+        # FIRST: Try to load from environment variables (Render, production)
+        # This takes priority so Render's env vars override any .env file
+        i = 1
+        while True:
+            key = os.getenv(f'GROQ_API_KEY_{i}')
+            if not key:
+                break
+            keys.append(key)
+            i += 1
         
-        # Fallback to system environment variables if .env not found or empty
-        if not keys:
-            i = 1
-            while True:
-                key = os.getenv(f'GROQ_API_KEY_{i}')
-                if not key:
-                    break
-                keys.append(key)
-                i += 1
+        if keys:
+            logger.info(f"🔄 Loaded {len(keys)} API keys from environment variables (production/Render)")
+        else:
+            # FALLBACK: Try .env file (local development only)
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            backend_dir = os.path.dirname(os.path.dirname(current_dir))
+            env_path = os.path.join(backend_dir, '.env')
             
-            if keys:
-                logger.info(f"Loaded {len(keys)} API keys from environment variables")
+            if os.path.exists(env_path):
+                env_values = dotenv_values(env_path)
+                i = 1
+                while True:
+                    key = env_values.get(f'GROQ_API_KEY_{i}')
+                    if not key:
+                        break
+                    keys.append(key)
+                    i += 1
+                
+                if keys:
+                    logger.info(f"🔄 Loaded {len(keys)} API keys from .env file (local dev)")
         
         if not keys:
-            raise ValueError("No API keys found in .env file or environment variables")
+            raise ValueError("No API keys found in environment variables or .env file")
         
         # Update internal state
         old_count = len(self._api_keys)
         self._api_keys = keys
         
-        # Reset key index if it's out of bounds
+        # Reset key index if out of bounds
         if self._current_key_index >= len(self._api_keys):
             self._current_key_index = 0
         
@@ -99,7 +98,7 @@ class BaseAIService:
         if self._api_keys:
             self.client = AsyncGroq(api_key=self._get_current_key())
         
-        # Log if keys changed
+        # Log changes
         if old_count != len(keys):
             logger.info(f"✓ API keys updated: {old_count} → {len(keys)} keys")
 
