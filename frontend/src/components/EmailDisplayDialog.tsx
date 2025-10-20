@@ -23,7 +23,7 @@ interface EmailDisplayDialogProps {
     open: boolean;
     onClose: () => void;
     email: string;
-    emailType: 'acceptance' | 'rejection';
+    emailType: 'acceptance' | 'rejection' | 'application' | 'no_application';
     candidateName: string;
     score: number;
     isBestMatch: boolean;
@@ -58,13 +58,16 @@ const EmailDisplayDialog: React.FC<EmailDisplayDialogProps> = ({
             <DialogTitle>
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                     <Box display="flex" alignItems="center" gap={1}>
-                        {emailType === 'acceptance' ? (
+                        {(emailType === 'acceptance' || emailType === 'application') ? (
                             <CheckCircleIcon color="success" />
                         ) : (
                             <CancelIcon color="error" />
                         )}
                         <Typography variant="h6">
-                            {emailType === 'acceptance' ? 'Acceptance' : 'Rejection'} Email
+                            {emailType === 'acceptance' ? 'Acceptance Email' :
+                                emailType === 'rejection' ? 'Rejection Email' :
+                                    emailType === 'application' ? 'Cover Letter' :
+                                        'Email'}
                         </Typography>
                     </Box>
                     <IconButton onClick={onClose} size="small">
@@ -77,8 +80,10 @@ const EmailDisplayDialog: React.FC<EmailDisplayDialogProps> = ({
                     <Box display="flex" gap={1} mb={2} flexWrap="wrap">
                         <Chip
                             icon={<EmailIcon />}
-                            label={emailType === 'acceptance' ? 'Interview Invitation' : 'Application Status'}
-                            color={emailType === 'acceptance' ? 'success' : 'error'}
+                            label={emailType === 'acceptance' ? 'Interview Invitation' :
+                                emailType === 'application' ? 'Job Application' :
+                                    'Application Status'}
+                            color={(emailType === 'acceptance' || emailType === 'application') ? 'success' : 'error'}
                         />
                         <Chip
                             icon={<StarIcon />}
@@ -86,7 +91,7 @@ const EmailDisplayDialog: React.FC<EmailDisplayDialogProps> = ({
                             color={score >= 70 ? 'success' : 'warning'}
                         />
                         {isBestMatch && (
-                            <Tooltip title="This candidate is the best match for the position">
+                            <Tooltip title="This is the best match">
                                 <Chip
                                     icon={<StarIcon />}
                                     label="Best Match"
@@ -96,7 +101,7 @@ const EmailDisplayDialog: React.FC<EmailDisplayDialogProps> = ({
                         )}
                     </Box>
                     <Typography variant="subtitle1" gutterBottom>
-                        To: {candidateName}
+                        {emailType === 'application' ? 'Application for:' : 'To:'} {candidateName}
                     </Typography>
                 </Box>
                 <Divider sx={{ mb: 3 }} />

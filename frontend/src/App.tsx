@@ -1,9 +1,11 @@
-import { ThemeProvider, createTheme, CssBaseline, Container, Box, AppBar, Toolbar, Typography, Paper } from '@mui/material'
-import WorkIcon from '@mui/icons-material/Work'
+import { ThemeProvider, createTheme, CssBaseline, Container, Box, AppBar, Toolbar, Typography, Paper, Switch, FormControlLabel, Tooltip } from '@mui/material'
+import BusinessCenterIcon from '@mui/icons-material/BusinessCenter'
+import PersonSearchIcon from '@mui/icons-material/PersonSearch'
 import RecruitmentContent from './components/RecruitmentContent'
 import { JobDescriptionProvider } from './contexts/JobDescriptionContext'
 import { ResumeProvider } from './contexts/ResumeContext'
 import { SettingsProvider } from './contexts/SettingsContext'
+import { ModeProvider, useMode } from './contexts/ModeContext'
 
 const theme = createTheme({
     palette: {
@@ -101,60 +103,115 @@ const theme = createTheme({
     },
 })
 
+const AppContent = () => {
+    const { mode, toggleMode } = useMode();
+
+    return (
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
+            {/* Header */}
+            <AppBar
+                position="sticky"
+                elevation={2}
+                sx={{
+                    background: mode === 'recruiter'
+                        ? 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)'
+                        : 'linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%)',
+                    boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+                    transition: 'background 0.3s ease'
+                }}
+            >
+                <Toolbar>
+                    {mode === 'recruiter' ? (
+                        <BusinessCenterIcon sx={{ mr: 2, fontSize: 32 }} />
+                    ) : (
+                        <PersonSearchIcon sx={{ mr: 2, fontSize: 32 }} />
+                    )}
+                    <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="h5" component="h1" fontWeight={600}>
+                            MatchWise
+                        </Typography>
+                        <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                            {mode === 'recruiter'
+                                ? 'Smart matching for recruiters - Find the perfect candidates'
+                                : 'Smart matching for candidates - Find your dream job'
+                            }
+                        </Typography>
+                    </Box>
+                    <Tooltip
+                        title={`Switch to ${mode === 'recruiter' ? 'Candidate' : 'Recruiter'} Mode`}
+                        arrow
+                    >
+                        <FormControlLabel
+                            control={
+                                <Switch
+                                    checked={mode === 'candidate'}
+                                    onChange={toggleMode}
+                                    sx={{
+                                        '& .MuiSwitch-switchBase.Mui-checked': {
+                                            color: '#ce93d8',
+                                        },
+                                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                                            backgroundColor: '#ba68c8',
+                                        },
+                                    }}
+                                />
+                            }
+                            label={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                        {mode === 'recruiter' ? 'Recruiter' : 'Candidate'}
+                                    </Typography>
+                                </Box>
+                            }
+                            labelPlacement="start"
+                            sx={{
+                                m: 0,
+                                '& .MuiFormControlLabel-label': {
+                                    color: 'white'
+                                }
+                            }}
+                        />
+                    </Tooltip>
+                </Toolbar>
+            </AppBar>
+
+            {/* Main Content */}
+            <Container maxWidth="lg" sx={{ py: 4, flexGrow: 1 }}>
+                <SettingsProvider>
+                    <JobDescriptionProvider>
+                        <ResumeProvider>
+                            <RecruitmentContent />
+                        </ResumeProvider>
+                    </JobDescriptionProvider>
+                </SettingsProvider>
+            </Container>
+
+            {/* Footer */}
+            <Paper
+                elevation={3}
+                sx={{
+                    mt: 'auto',
+                    py: 3,
+                    textAlign: 'center',
+                    borderRadius: 0,
+                    background: 'linear-gradient(135deg, #f5f7fa 0%, #e3e8ef 100%)'
+                }}
+            >
+                <Typography variant="body2" color="text.secondary">
+                    © 2025 MatchWise. Smart matching for both recruiters and candidates. Made with ❤️
+                </Typography>
+            </Paper>
+        </Box>
+    );
+};
+
 function App() {
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline />
-            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
-                {/* Header */}
-                <AppBar
-                    position="sticky"
-                    elevation={2}
-                    sx={{
-                        background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-                        boxShadow: '0 2px 12px rgba(0,0,0,0.15)'
-                    }}
-                >
-                    <Toolbar>
-                        <WorkIcon sx={{ mr: 2, fontSize: 32 }} />
-                        <Box sx={{ flexGrow: 1 }}>
-                            <Typography variant="h5" component="h1" fontWeight={600}>
-                                AI Recruitment Assistant
-                            </Typography>
-                            <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                                Streamline your hiring process with AI-powered resume analysis
-                            </Typography>
-                        </Box>
-                    </Toolbar>
-                </AppBar>
-
-                {/* Main Content */}
-                <Container maxWidth="lg" sx={{ py: 4, flexGrow: 1 }}>
-                    <SettingsProvider>
-                        <JobDescriptionProvider>
-                            <ResumeProvider>
-                                <RecruitmentContent />
-                            </ResumeProvider>
-                        </JobDescriptionProvider>
-                    </SettingsProvider>
-                </Container>
-
-                {/* Footer */}
-                <Paper
-                    elevation={3}
-                    sx={{
-                        mt: 'auto',
-                        py: 3,
-                        textAlign: 'center',
-                        borderRadius: 0,
-                        background: 'linear-gradient(135deg, #f5f7fa 0%, #e3e8ef 100%)'
-                    }}
-                >
-                    <Typography variant="body2" color="text.secondary">
-                        © 2025 AI Recruitment Assistant. Made with ❤️ for better hiring.
-                    </Typography>
-                </Paper>
-            </Box>
+            <ModeProvider>
+                <AppContent />
+            </ModeProvider>
         </ThemeProvider>
     )
 }

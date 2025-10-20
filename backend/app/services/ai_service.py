@@ -72,3 +72,44 @@ class AIService(BaseAIService):
 
         result = await self.get_completion(prompt, "resume_analysis")
         return self.parse_structured_response(result, ["Score", "Missing Skills", "Remarks"])
+
+    async def analyze_job_for_resume(self, job_description: str, resume_text: str, company_name: str = "the company") -> dict:
+        """Analyze a job description against a resume (candidate perspective)"""
+        prompt = f"""Analyze this job description against the candidate's resume and provide:
+        1. A matching score out of 100 indicating how well the candidate fits this role
+        2. List of required skills from the job that the candidate is missing
+        3. Brief, specific remarks about the candidate's strengths for this role and areas to improve
+
+        Important Instructions for Analysis:
+        - For Matching Score:
+          * Evaluate based on skills match, experience level, and qualifications
+          * Consider both technical and soft skills
+          * Higher score means better fit for the role
+        
+        - For Missing Skills:
+          * Only include skills explicitly mentioned in the job description that are absent from the resume
+          * Format as a comma-separated list
+          * If no skills are missing, write 'none'
+          * Never return an empty list
+        
+        - For Remarks:
+          * Provide 2-3 brief, specific points
+          * Format as short phrases separated by commas
+          * Highlight candidate's relevant strengths first
+          * Mention transferable skills if applicable
+          * Keep each point under 8 words
+        
+        Job Description from {company_name}:
+        {job_description}
+        
+        Candidate's Resume:
+        {resume_text}
+        
+        Format your response EXACTLY as follows:
+        Score: [number between 0-100]
+        Missing Skills: [skills separated by commas]
+        Remarks: [brief points separated by commas]
+        """
+
+        result = await self.get_completion(prompt, "resume_analysis")
+        return self.parse_structured_response(result, ["Score", "Missing Skills", "Remarks"])

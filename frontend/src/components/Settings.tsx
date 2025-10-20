@@ -24,6 +24,7 @@ export interface RecruitmentSettings {
 interface SettingsProps {
     settings: RecruitmentSettings;
     onSettingsChange: (settings: RecruitmentSettings) => void;
+    isCandidateMode?: boolean;
 }
 
 export const defaultSettings: RecruitmentSettings = {
@@ -31,7 +32,7 @@ export const defaultSettings: RecruitmentSettings = {
     maxMissingSkills: 3,
 };
 
-const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
+const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange, isCandidateMode = false }) => {
     const handleScoreChange = (_: Event, newValue: number | number[]) => {
         onSettingsChange({
             ...settings,
@@ -87,10 +88,13 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                 </Box>
                 <Box>
                     <Typography variant="h5" component="h2" fontWeight={600}>
-                        Recruitment Settings
+                        {isCandidateMode ? 'Job Match Settings' : 'Recruitment Settings'}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                        Configure your candidate screening criteria
+                        {isCandidateMode
+                            ? 'Configure your job match criteria'
+                            : 'Configure your candidate screening criteria'
+                        }
                     </Typography>
                 </Box>
             </Box>
@@ -104,7 +108,10 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                 }}
             >
                 <Typography variant="body2">
-                    These settings determine which candidates qualify for interviews. Adjust them based on your hiring needs and role requirements.
+                    {isCandidateMode
+                        ? 'These settings determine which jobs are good matches for you. Adjust them based on your preferences and career goals.'
+                        : 'These settings determine which candidates qualify for interviews. Adjust them based on your hiring needs and role requirements.'
+                    }
                 </Typography>
             </Alert>
 
@@ -127,7 +134,10 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                                     Minimum Score
                                 </Typography>
                             </Box>
-                            <Tooltip title="Candidates must achieve at least this score to be considered qualified. A higher percentage means more selective screening.">
+                            <Tooltip title={isCandidateMode
+                                ? "Jobs must have at least this match score to be considered good matches. A higher percentage means you're being more selective about opportunities."
+                                : "Candidates must achieve at least this score to be considered qualified. A higher percentage means more selective screening."
+                            }>
                                 <IconButton size="small">
                                     <HelpOutlineIcon fontSize="small" />
                                 </IconButton>
@@ -175,7 +185,7 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                                 }}
                             />
                             <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                Lower scores = More candidates qualify
+                                {isCandidateMode ? 'Lower scores = More job opportunities' : 'Lower scores = More candidates qualify'}
                             </Typography>
                         </Box>
                     </Paper>
@@ -199,7 +209,10 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                                     Missing Skills
                                 </Typography>
                             </Box>
-                            <Tooltip title="The maximum number of required skills that a candidate can be missing while still being considered qualified. Lower numbers mean candidates must match more required skills.">
+                            <Tooltip title={isCandidateMode
+                                ? "The maximum number of required skills you can be missing while a job is still considered a good match. Lower numbers mean you must match more required skills."
+                                : "The maximum number of required skills that a candidate can be missing while still being considered qualified. Lower numbers mean candidates must match more required skills."
+                            }>
                                 <IconButton size="small">
                                     <HelpOutlineIcon fontSize="small" />
                                 </IconButton>
@@ -260,8 +273,8 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange }) => {
                     }}
                 >
                     <Typography variant="body2" fontWeight={500}>
-                        ✅ Current settings: Candidates need at least <strong>{settings.minimumScore}%</strong> match
-                        and can miss up to <strong>{settings.maxMissingSkills}</strong> required skills to qualify for interviews.
+                        ✅ Current settings: {isCandidateMode ? 'Jobs' : 'Candidates'} need at least <strong>{settings.minimumScore}%</strong> match
+                        and can miss up to <strong>{settings.maxMissingSkills}</strong> required skills to {isCandidateMode ? 'be considered good matches' : 'qualify for interviews'}.
                     </Typography>
                 </Alert>
             </Box>

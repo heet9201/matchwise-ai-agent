@@ -63,7 +63,7 @@ The script logs all ping attempts with timestamps:
 - ❌ Errors for connection failures
 - ⏱ Timeout notifications
 
-AUTHOR: Recruitment AI Agent Team
+AUTHOR: MatchWise Team
 LICENSE: MIT
 """
 

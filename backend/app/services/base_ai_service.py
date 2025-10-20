@@ -27,7 +27,7 @@ class BaseAIService:
         "resume_analysis": {
             "temperature": 0.5,
             "max_tokens": 500,
-            "system_message": "You are an AI recruitment expert."
+            "system_message": "You are an AI recruitment and job matching expert for MatchWise."
         },
         "email": {
             "temperature": 0.7,

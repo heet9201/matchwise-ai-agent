@@ -90,3 +90,35 @@ class EmailService(BaseAIService):
         """
 
         return await self._generate_email(prompt, 400)
+
+    async def generate_application_email(self, company_name: str, job_description: str, candidate_resume: str) -> str:
+        """Generate a personalized cover letter/application email for a candidate"""
+        
+        prompt = f"""Generate a professional and compelling cover letter/application email for a job candidate.
+        
+        Company: {company_name}
+        Job Description: {job_description}
+        Candidate Background (from resume): {candidate_resume[:1500]}  # Limit to avoid token issues
+        
+        Requirements for the email:
+        1. Start with a professional greeting (Dear Hiring Manager or similar)
+        2. Open with enthusiasm and mention the specific position
+        3. Highlight 2-3 key qualifications that match the job requirements
+        4. Show genuine interest in the company and role
+        5. Demonstrate understanding of the company's needs
+        6. Include a brief mention of relevant achievements or experiences
+        7. Express eagerness to contribute and discuss further
+        8. End with a professional closing and call-to-action
+        
+        The tone should be:
+        - Professional and confident but not arrogant
+        - Enthusiastic and genuine
+        - Concise and impactful (aim for 250-300 words)
+        - Tailored to the specific role and company
+        - Show personality while maintaining professionalism
+        
+        Format the email properly with appropriate spacing and structure.
+        Do not include placeholder fields like [Your Name] - this should be a complete, ready-to-personalize email.
+        """
+
+        return await self._generate_email(prompt, 600)

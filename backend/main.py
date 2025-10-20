@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException, status, Depe
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.exceptions import RequestValidationError
-from typing import List, Optional, AsyncGenerator
+from typing import List, Optional, AsyncGenerator, Dict
 from pydantic import BaseModel, Field, validator
 import uvicorn
 import os
@@ -34,8 +34,8 @@ if missing_vars:
     raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
 
 app = FastAPI(
-    title="Recruitment AI Agent",
-    description="API for processing job descriptions and analyzing resumes using AI",
+    title="MatchWise API",
+    description="Smart matching API for both recruiters and candidates - AI-powered resume analysis and job matching",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -256,11 +256,11 @@ async def root():
     """Root endpoint providing API information"""
     return APIResponse(
         success=True,
-        message="Welcome to Recruitment AI Agent API",
+        message="Welcome to MatchWise API",
         data={
-            "name": "Recruitment AI Agent",
+            "name": "MatchWise",
             "version": "1.0.0",
-            "description": "AI-powered recruitment assistant for job description generation and resume analysis",
+            "description": "Smart matching for both recruiters and candidates - AI-powered resume analysis and job matching",
             "endpoints": {
                 "docs": "/docs",
                 "redoc": "/redoc",
@@ -773,5 +773,293 @@ async def analyze_resumes(
             detail=str(e)
         )
 
+# ==================== CANDIDATE MODE ENDPOINTS ====================
+
+async def process_jobs_stream(
+    resume_text: str,
+    job_descriptions: List[Dict[str, str]],
+    minimum_score: float,
+    max_missing_skills: int
+) -> AsyncGenerator[str, None]:
+    """Generator function to stream job analysis progress for candidate mode"""
+    total_jobs = len(job_descriptions)
+    results = []
+    
+    try:
+        for index, job_info in enumerate(job_descriptions):
+            job_source = job_info.get('source', 'unknown')
+            job_text = job_info.get('text', '')
+            company_name = job_info.get('company_name', 'Company')
+            
+            # Send progress update - allocate 90% for job processing
+            current_progress = int((index / total_jobs) * 90)
+            progress = {
+                "type": "progress",
+                "current": index + 1,
+                "total": total_jobs,
+                "job_source": job_source,
+                "company_name": company_name,
+                "status": "analyzing",
+                "percentage": current_progress
+            }
+            json_data = json.dumps(progress, ensure_ascii=False)
+            yield f"data: {json_data}\n\n"
+            await asyncio.sleep(0.1)
+            
+            try:
+                # Analyze job against resume
+                analysis = await ai_service.analyze_job_for_resume(
+                    job_text, 
+                    resume_text,
+                    company_name
+                )
+                
+                result = {
+                    "job_source": job_source,
+                    "company_name": company_name,
+                    **analysis
+                }
+                results.append(result)
+                
+                # Send analysis complete status
+                progress["status"] = "analyzed"
+                progress["percentage"] = int(((index + 1) / total_jobs) * 90)
+                progress["result"] = result
+                json_data = json.dumps(progress, ensure_ascii=False)
+                yield f"data: {json_data}\n\n"
+                
+            except Exception as e:
+                logger.error(f"Error analyzing job {job_source}: {str(e)}")
+                error_result = {
+                    "job_source": job_source,
+                    "company_name": company_name,
+                    "error": str(e),
+                    "score": 0,
+                    "missing_skills": [],
+                    "remarks": "Error analyzing job"
+                }
+                results.append(error_result)
+                
+                progress["status"] = "error"
+                progress["error"] = str(e)
+                progress["result"] = error_result
+                json_data = json.dumps(progress, ensure_ascii=False)
+                yield f"data: {json_data}\n\n"
+        
+        # Generate application emails after all jobs are analyzed
+        successful_results = [r for r in results if "error" not in r]
+        if successful_results:
+            successful_results.sort(key=lambda x: x["score"], reverse=True)
+            
+            # Calculate email generation progress allocation
+            total_results = len(results)
+            email_progress_start = 90
+            email_progress_range = 10  # 90% to 100%
+            
+            for email_index, result in enumerate(results):
+                if "error" not in result:
+                    # Send email generation started for this job
+                    email_gen_progress = {
+                        "type": "progress",
+                        "job_source": result["job_source"],
+                        "company_name": result["company_name"],
+                        "status": "generating_email",
+                        "percentage": email_progress_start + int((email_index / total_results) * email_progress_range)
+                    }
+                    json_data = json.dumps(email_gen_progress, ensure_ascii=False)
+                    yield f"data: {json_data}\n\n"
+                    
+                    is_good_match = (
+                        result["score"] >= minimum_score and
+                        len(result.get("missing_skills", [])) <= max_missing_skills
+                    )
+                    
+                    try:
+                        best_score = max(r["score"] for r in successful_results if "error" not in r)
+                        jobs_with_best_score = [
+                            r for r in successful_results 
+                            if "error" not in r and r["score"] == best_score
+                        ]
+                        min_missing_skills_count = min(
+                            len(r.get("missing_skills", [])) 
+                            for r in jobs_with_best_score
+                        )
+                        
+                        result["is_best_match"] = (
+                            is_good_match and 
+                            result["score"] == best_score and
+                            len(result.get("missing_skills", [])) == min_missing_skills_count
+                        )
+
+                        if is_good_match:
+                            # Generate application email for good matches
+                            job_text = next(
+                                (j['text'] for j in job_descriptions if j['source'] == result['job_source']),
+                                ""
+                            )
+                            result["email"] = await email_service.generate_application_email(
+                                result["company_name"],
+                                job_text,
+                                resume_text
+                            )
+                            result["email_type"] = "application"
+                        else:
+                            # For poor matches, indicate no application needed
+                            result["email"] = "This position may not be the best fit based on the analysis. Consider focusing on roles with higher match scores."
+                            result["email_type"] = "no_application"
+                        
+                        # Send email generation complete for this job
+                        email_complete_progress = {
+                            "type": "progress",
+                            "job_source": result["job_source"],
+                            "company_name": result["company_name"],
+                            "status": "complete",
+                            "percentage": email_progress_start + int(((email_index + 1) / total_results) * email_progress_range),
+                            "result": result
+                        }
+                        json_data = json.dumps(email_complete_progress, ensure_ascii=False)
+                        yield f"data: {json_data}\n\n"
+                            
+                    except Exception as email_error:
+                        logger.error(f"Failed to generate email for {result['job_source']}: {str(email_error)}")
+                        result["email_error"] = str(email_error)
+                        
+                        # Send email generation error for this job
+                        email_error_progress = {
+                            "type": "progress",
+                            "job_source": result["job_source"],
+                            "company_name": result["company_name"],
+                            "status": "complete",
+                            "percentage": email_progress_start + int(((email_index + 1) / total_results) * email_progress_range),
+                            "result": result
+                        }
+                        json_data = json.dumps(email_error_progress, ensure_ascii=False)
+                        yield f"data: {json_data}\n\n"
+        
+        # Send final results - 100% complete
+        final_data = {
+            "type": "complete",
+            "results": results,
+            "percentage": 100
+        }
+        json_data = json.dumps(final_data, ensure_ascii=False)
+        yield f"data: {json_data}\n\n"
+        
+    except Exception as e:
+        logger.error(f"Error in job processing stream: {str(e)}", exc_info=True)
+        error_data = {
+            "type": "error",
+            "error": str(e)
+        }
+        json_data = json.dumps(error_data, ensure_ascii=False)
+        yield f"data: {json_data}\n\n"
+
+@app.post("/api/jobs/analyze-stream", tags=["Job Analysis"])
+async def analyze_jobs_stream(
+    resume: UploadFile = File(...),
+    job_texts: Optional[List[str]] = Form(default=None),
+    job_files: Optional[List[UploadFile]] = File(default=None),
+    job_urls: Optional[List[str]] = Form(default=None),
+    company_names: Optional[List[str]] = Form(default=None),
+    minimum_score: float = Form(default=70.0),
+    max_missing_skills: int = Form(default=3)
+):
+    """
+    Analyze multiple job descriptions against a candidate's resume.
+    Returns Server-Sent Events (SSE) with progress updates.
+    """
+    try:
+        # Input validation
+        if not resume:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Resume is required"
+            )
+
+        # Process the resume
+        try:
+            resume_text = await file_service.process_file(resume)
+            if not resume_text or len(resume_text.strip()) < 100:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Resume content is too short or empty"
+                )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to process resume: {str(e)}"
+            )
+
+        # Collect all job descriptions
+        job_descriptions = []
+        
+        # Process text-based job descriptions
+        if job_texts:
+            for idx, job_text in enumerate(job_texts):
+                if job_text and len(job_text.strip()) >= 50:
+                    company = company_names[idx] if company_names and idx < len(company_names) else f"Company {idx + 1}"
+                    job_descriptions.append({
+                        "source": f"text_job_{idx + 1}",
+                        "text": job_text,
+                        "company_name": company
+                    })
+        
+        # Process file-based job descriptions
+        if job_files:
+            for idx, job_file in enumerate(job_files):
+                try:
+                    job_text = await file_service.process_file(job_file)
+                    if job_text and len(job_text.strip()) >= 50:
+                        company = company_names[idx + len(job_texts or [])] if company_names and (idx + len(job_texts or [])) < len(company_names) else job_file.filename
+                        job_descriptions.append({
+                            "source": job_file.filename,
+                            "text": job_text,
+                            "company_name": company
+                        })
+                except Exception as e:
+                    logger.error(f"Failed to process job file {job_file.filename}: {str(e)}")
+        
+        # Process URL-based job descriptions (basic implementation)
+        if job_urls:
+            for idx, url in enumerate(job_urls):
+                # For now, we'll add placeholder - full implementation would require web scraping
+                logger.warning(f"URL-based job descriptions not fully implemented yet: {url}")
+                # job_descriptions.append({
+                #     "source": url,
+                #     "text": "URL processing to be implemented",
+                #     "company_name": f"Company from URL {idx + 1}"
+                # })
+
+        if not job_descriptions:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No valid job descriptions provided"
+            )
+
+        if len(job_descriptions) > 10:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Maximum 10 job descriptions allowed"
+            )
+
+        return StreamingResponse(
+            process_jobs_stream(resume_text, job_descriptions, minimum_score, max_missing_skills),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"
+            }
+        )
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error starting job analysis stream: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+

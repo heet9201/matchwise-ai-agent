@@ -21,7 +21,11 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-const steps = [
+interface InstructionsProps {
+    isCandidateMode?: boolean;
+}
+
+const recruiterSteps = [
     {
         label: 'Configure Recruitment Settings',
         icon: <SettingsIcon />,
@@ -57,7 +61,44 @@ const steps = [
     },
 ];
 
-const Instructions: React.FC = () => {
+const candidateSteps = [
+    {
+        label: 'Configure Job Match Settings',
+        icon: <SettingsIcon />,
+        description: `Start by setting your job search criteria:`,
+        points: [
+            'Minimum Required Score: Set the minimum match score (default 70%) for job recommendations',
+            'Maximum Missing Skills: Set how many skills (default 3) you can afford to lack',
+        ],
+        tip: 'These settings help identify jobs that best match your profile.',
+    },
+    {
+        label: 'Upload Your Resume',
+        icon: <UploadFileIcon />,
+        description: `First, upload your resume:`,
+        points: [
+            'Upload your resume (PDF, DOC, DOCX)',
+            'The system will extract and analyze your skills and experience',
+            'Make sure your resume is up-to-date and well-formatted',
+        ],
+        tip: 'A well-structured resume leads to better job matches.',
+    },
+    {
+        label: 'Add & Analyze Job Descriptions',
+        icon: <DescriptionIcon />,
+        description: `Add job postings you\'re interested in:`,
+        points: [
+            'Upload job description files (PDF, DOC, DOCX)',
+            'Type or paste job descriptions manually',
+            'Provide links to job postings (Coming soon)',
+            'The system analyzes each job and generates personalized cover letters',
+        ],
+        tip: 'Add multiple jobs at once to compare matches efficiently.',
+    },
+];
+
+const Instructions: React.FC<InstructionsProps> = ({ isCandidateMode = false }) => {
+    const steps = isCandidateMode ? candidateSteps : recruiterSteps;
     return (
         <Fade in={true} timeout={800}>
             <Accordion
@@ -99,10 +140,12 @@ const Instructions: React.FC = () => {
                         </Box>
                         <Box>
                             <Typography variant="h6" component="h2" fontWeight={600}>
-                                How to Use This Platform
+                                {isCandidateMode ? 'How to Find Your Perfect Job Match' : 'How to Use This Platform'}
                             </Typography>
                             <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                                Follow these simple steps to streamline your recruitment process
+                                {isCandidateMode
+                                    ? 'Follow these steps to discover jobs that match your skills'
+                                    : 'Follow these simple steps to streamline your recruitment process'}
                             </Typography>
                         </Box>
                     </Box>
@@ -124,8 +167,9 @@ const Instructions: React.FC = () => {
                         }}
                     >
                         <Typography variant="body2" fontWeight={500}>
-                            Welcome! This AI-powered platform automates resume screening and candidate communication,
-                            saving you hours of manual work.
+                            {isCandidateMode
+                                ? 'Welcome! This AI-powered platform helps you discover jobs that match your skills and automatically generates personalized cover letters.'
+                                : 'Welcome! This AI-powered platform automates resume screening and candidate communication, saving you hours of manual work.'}
                         </Typography>
                     </Alert>
 
@@ -217,8 +261,9 @@ const Instructions: React.FC = () => {
                             }}
                         >
                             <Typography variant="body2" fontWeight={500}>
-                                ✨ The platform automatically handles candidate communication based on your settings,
-                                maintaining professionalism while saving you valuable time.
+                                {isCandidateMode
+                                    ? '✨ The platform analyzes your resume against multiple jobs, provides match scores, identifies skill gaps, and creates tailored cover letters for your top matches.'
+                                    : '✨ The platform automatically handles candidate communication based on your settings, maintaining professionalism while saving you valuable time.'}
                             </Typography>
                         </Alert>
                     </Box>
