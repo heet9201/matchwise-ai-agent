@@ -3,11 +3,13 @@ import { Box, Button, Alert } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import CandidateResumeUpload from './CandidateResumeUpload';
 import JobDescriptionsUpload, { JobDescription } from './JobDescriptionsUpload';
+import AnimatedCard from './AnimatedCard';
 import { useSettings } from '../contexts/SettingsContext';
 import { apiService, JobAnalysisResult } from '../services/api';
 import ProgressOverlay from './ProgressOverlay';
 import Settings from './Settings';
 import Instructions from './Instructions';
+import { useMode } from '../contexts/ModeContext';
 
 interface CandidateModeProps {
     onResultsChange: (results: JobAnalysisResult[]) => void;
@@ -21,6 +23,7 @@ const CandidateMode: React.FC<CandidateModeProps> = ({ onResultsChange }) => {
     const [progress, setProgress] = useState(0);
     const [progressMessage, setProgressMessage] = useState('');
     const { settings, setSettings } = useSettings();
+    const { mode } = useMode();
 
     const handleAnalyze = async () => {
         if (!resume) {
@@ -127,44 +130,86 @@ const CandidateMode: React.FC<CandidateModeProps> = ({ onResultsChange }) => {
                 />
             )}
 
-            <Instructions isCandidateMode={true} />
+            <AnimatedCard delay={0}>
+                <Instructions isCandidateMode={true} />
+            </AnimatedCard>
 
-            <Settings settings={settings} onSettingsChange={setSettings} isCandidateMode={true} />
+            <AnimatedCard delay={0.1}>
+                <Settings settings={settings} onSettingsChange={setSettings} isCandidateMode={true} />
+            </AnimatedCard>
 
-            <CandidateResumeUpload resume={resume} onResumeChange={setResume} />
+            <AnimatedCard delay={0.2}>
+                <CandidateResumeUpload resume={resume} onResumeChange={setResume} />
+            </AnimatedCard>
 
-            <JobDescriptionsUpload jobs={jobs} onJobsChange={setJobs} />
+            <AnimatedCard delay={0.3}>
+                <JobDescriptionsUpload jobs={jobs} onJobsChange={setJobs} />
+            </AnimatedCard>
 
             {error && (
-                <Alert severity="error" onClose={() => setError(null)}>
-                    {error}
-                </Alert>
+                <AnimatedCard delay={0.4}>
+                    <Alert severity="error" onClose={() => setError(null)}>
+                        {error}
+                    </Alert>
+                </AnimatedCard>
             )}
 
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                <Button
-                    variant="outlined"
-                    onClick={handleClearAll}
-                    disabled={isAnalyzing || (!resume && jobs.length === 0)}
-                >
-                    Clear All
-                </Button>
-                <Button
-                    variant="contained"
-                    size="large"
-                    onClick={handleAnalyze}
-                    disabled={!resume || jobs.length === 0 || isAnalyzing}
-                    startIcon={<SendIcon />}
-                    sx={{
-                        background: 'linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%)',
-                        '&:hover': {
-                            background: 'linear-gradient(135deg, #7b1fa2 0%, #6a1b9a 100%)',
-                        },
-                    }}
-                >
-                    Analyze Job Matches
-                </Button>
-            </Box>
+            <AnimatedCard delay={0.4}>
+                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                    <Button
+                        variant="outlined"
+                        onClick={handleClearAll}
+                        disabled={isAnalyzing || (!resume && jobs.length === 0)}
+                        sx={{
+                            borderColor: mode === 'recruiter'
+                                ? 'rgba(99, 102, 241, 0.5)'
+                                : 'rgba(168, 85, 247, 0.5)',
+                            color: mode === 'recruiter'
+                                ? 'rgba(147, 197, 253, 1)'
+                                : 'rgba(216, 180, 254, 1)',
+                            '&:hover': {
+                                borderColor: mode === 'recruiter'
+                                    ? 'rgba(99, 102, 241, 0.8)'
+                                    : 'rgba(168, 85, 247, 0.8)',
+                                background: mode === 'recruiter'
+                                    ? 'rgba(99, 102, 241, 0.1)'
+                                    : 'rgba(168, 85, 247, 0.1)',
+                            },
+                        }}
+                    >
+                        Clear All
+                    </Button>
+                    <Button
+                        variant="contained"
+                        size="large"
+                        onClick={handleAnalyze}
+                        disabled={!resume || jobs.length === 0 || isAnalyzing}
+                        startIcon={<SendIcon />}
+                        sx={{
+                            background: mode === 'recruiter'
+                                ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+                                : 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
+                            boxShadow: mode === 'recruiter'
+                                ? '0 4px 16px rgba(99, 102, 241, 0.4)'
+                                : '0 4px 16px rgba(168, 85, 247, 0.4)',
+                            '&:hover': {
+                                background: mode === 'recruiter'
+                                    ? 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)'
+                                    : 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)',
+                                boxShadow: mode === 'recruiter'
+                                    ? '0 6px 20px rgba(99, 102, 241, 0.6)'
+                                    : '0 6px 20px rgba(168, 85, 247, 0.6)',
+                            },
+                            '&:disabled': {
+                                background: 'rgba(100, 100, 100, 0.3)',
+                                color: 'rgba(150, 150, 150, 0.5)',
+                            },
+                        }}
+                    >
+                        Analyze Job Matches
+                    </Button>
+                </Box>
+            </AnimatedCard>
         </Box>
     );
 };

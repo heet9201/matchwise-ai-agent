@@ -215,7 +215,8 @@ const JobDescriptionInput: React.FC = () => {
                                 <Box sx={{
                                     mt: 2,
                                     p: 2,
-                                    backgroundColor: 'white',
+                                    background: 'rgba(30, 41, 59, 0.6)',
+                                    backdropFilter: 'blur(10px)',
                                     borderRadius: 1,
                                     boxShadow: 1
                                 }}>

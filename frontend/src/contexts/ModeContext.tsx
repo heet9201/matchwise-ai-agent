@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export type AppMode = 'recruiter' | 'candidate';
 
@@ -11,10 +11,23 @@ interface ModeContextType {
 const ModeContext = createContext<ModeContextType | undefined>(undefined);
 
 export const ModeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [mode, setMode] = useState<AppMode>('recruiter');
+    // Initialize from localStorage or default to 'recruiter'
+    const [mode, setModeState] = useState<AppMode>(() => {
+        const savedMode = localStorage.getItem('matchwise-mode');
+        return (savedMode === 'recruiter' || savedMode === 'candidate') ? savedMode : 'recruiter';
+    });
+
+    // Persist mode to localStorage whenever it changes
+    useEffect(() => {
+        localStorage.setItem('matchwise-mode', mode);
+    }, [mode]);
+
+    const setMode = (newMode: AppMode) => {
+        setModeState(newMode);
+    };
 
     const toggleMode = () => {
-        setMode(prevMode => prevMode === 'recruiter' ? 'candidate' : 'recruiter');
+        setModeState(prevMode => prevMode === 'recruiter' ? 'candidate' : 'recruiter');
     };
 
     return (

@@ -15,6 +15,7 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ScoreIcon from '@mui/icons-material/Score';
 import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove';
+import { useMode } from '../contexts/ModeContext';
 
 export interface RecruitmentSettings {
     minimumScore: number;
@@ -33,6 +34,7 @@ export const defaultSettings: RecruitmentSettings = {
 };
 
 const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange, isCandidateMode = false }) => {
+    const { mode } = useMode();
     const handleScoreChange = (_: Event, newValue: number | number[]) => {
         onSettingsChange({
             ...settings,
@@ -69,22 +71,35 @@ const Settings: React.FC<SettingsProps> = ({ settings, onSettingsChange, isCandi
                 p: 4,
                 mb: 3,
                 borderRadius: 3,
-                background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                background: mode === 'recruiter'
+                    ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%)'
+                    : 'linear-gradient(135deg, rgba(24, 17, 43, 0.95) 0%, rgba(45, 27, 61, 0.95) 100%)',
+                backdropFilter: 'blur(20px) saturate(180%)',
                 border: '1px solid',
-                borderColor: 'divider',
+                borderColor: mode === 'recruiter'
+                    ? 'rgba(99, 102, 241, 0.15)'
+                    : 'rgba(168, 85, 247, 0.15)',
+                boxShadow: mode === 'recruiter'
+                    ? '0 8px 32px 0 rgba(99, 102, 241, 0.08)'
+                    : '0 8px 32px 0 rgba(168, 85, 247, 0.08)',
             }}
         >
             <Box display="flex" alignItems="center" mb={3}>
                 <Box
                     sx={{
-                        bgcolor: 'primary.main',
+                        background: mode === 'recruiter'
+                            ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+                            : 'linear-gradient(135deg, #a855f7, #ec4899)',
                         borderRadius: '50%',
                         p: 1,
                         display: 'flex',
                         mr: 2,
+                        boxShadow: mode === 'recruiter'
+                            ? '0 4px 16px rgba(99, 102, 241, 0.3)'
+                            : '0 4px 16px rgba(168, 85, 247, 0.3)',
                     }}
                 >
-                    <SettingsIcon sx={{ color: 'white', fontSize: 28 }} />
+                    <SettingsIcon sx={{ color: 'rgba(255, 255, 255, 0.95)', fontSize: 28 }} />
                 </Box>
                 <Box>
                     <Typography variant="h5" component="h2" fontWeight={600}>

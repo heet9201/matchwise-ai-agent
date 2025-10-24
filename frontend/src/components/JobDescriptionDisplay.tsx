@@ -16,9 +16,11 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DescriptionIcon from '@mui/icons-material/Description';
 import { useJobDescription } from '../contexts/JobDescriptionContext';
+import { useMode } from '../contexts/ModeContext';
 
 const JobDescriptionDisplay: React.FC = () => {
     const { jobDescription } = useJobDescription();
+    const { mode } = useMode();
     const [copied, setCopied] = React.useState(false);
 
     const handleCopy = () => {
@@ -36,7 +38,13 @@ const JobDescriptionDisplay: React.FC = () => {
             <Accordion
                 sx={{
                     mt: 3,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    background: mode === 'recruiter'
+                        ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.9) 100%)'
+                        : 'linear-gradient(135deg, rgba(24, 17, 43, 0.9) 0%, rgba(45, 27, 61, 0.9) 100%)',
+                    backdropFilter: 'blur(20px) saturate(180%)',
+                    boxShadow: mode === 'recruiter'
+                        ? '0 8px 32px 0 rgba(99, 102, 241, 0.12)'
+                        : '0 8px 32px 0 rgba(168, 85, 247, 0.12)',
                     '&.MuiAccordion-root': {
                         borderRadius: 3,
                         overflow: 'hidden',
@@ -48,10 +56,12 @@ const JobDescriptionDisplay: React.FC = () => {
                 defaultExpanded={false}
             >
                 <AccordionSummary
-                    expandIcon={<ExpandMoreIcon sx={{ color: 'white' }} />}
+                    expandIcon={<ExpandMoreIcon sx={{ color: 'rgba(255, 255, 255, 0.95)' }} />}
                     sx={{
-                        background: 'linear-gradient(135deg, #1976d2 0%, #1565c0 100%)',
-                        color: 'white',
+                        background: mode === 'recruiter'
+                            ? 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
+                            : 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
+                        color: 'rgba(255, 255, 255, 0.95)',
                         minHeight: 72,
                         '& .MuiAccordionSummary-content': {
                             my: 2,
@@ -102,12 +112,22 @@ const JobDescriptionDisplay: React.FC = () => {
                         </Box>
                     </Box>
                 </AccordionSummary>
-                <AccordionDetails sx={{ p: 4, bgcolor: '#f8f9fa' }}>
+                <AccordionDetails sx={{
+                    p: 4,
+                    background: mode === 'recruiter'
+                        ? 'rgba(15, 23, 42, 0.5)'
+                        : 'rgba(24, 17, 43, 0.5)',
+                }}>
                     <Alert
                         severity="success"
                         sx={{
                             mb: 3,
                             borderRadius: 2,
+                            background: mode === 'recruiter'
+                                ? 'rgba(34, 197, 94, 0.15)'
+                                : 'rgba(34, 197, 94, 0.15)',
+                            border: '1px solid rgba(34, 197, 94, 0.3)',
+                            color: 'rgba(167, 243, 208, 1)',
                         }}
                     >
                         <Typography variant="body2" fontWeight={500}>
@@ -115,7 +135,10 @@ const JobDescriptionDisplay: React.FC = () => {
                         </Typography>
                     </Alert>
                     <Box sx={{
-                        backgroundColor: 'white',
+                        background: mode === 'recruiter'
+                            ? 'rgba(30, 41, 59, 0.6)'
+                            : 'rgba(45, 27, 61, 0.6)',
+                        backdropFilter: 'blur(10px)',
                         p: 3,
                         borderRadius: 2,
                         border: '1px solid',
