@@ -22,6 +22,7 @@ const CandidateMode: React.FC<CandidateModeProps> = ({ onResultsChange }) => {
     const [error, setError] = useState<string | null>(null);
     const [progress, setProgress] = useState(0);
     const [progressMessage, setProgressMessage] = useState('');
+    const [hasAnalyzed, setHasAnalyzed] = useState(false); // Track if analysis has been done
     const { settings, setSettings } = useSettings();
     const { mode } = useMode();
 
@@ -99,6 +100,7 @@ const CandidateMode: React.FC<CandidateModeProps> = ({ onResultsChange }) => {
                         onResultsChange(allResults);
                     }
                     setProgressMessage('Analysis complete!');
+                    setHasAnalyzed(true); // Mark that analysis has been completed
                 }
             });
 
@@ -118,6 +120,7 @@ const CandidateMode: React.FC<CandidateModeProps> = ({ onResultsChange }) => {
         setError(null);
         setProgress(0);
         setProgressMessage('');
+        setHasAnalyzed(false); // Reset analysis state
         onResultsChange([]);
     };
 
@@ -135,7 +138,12 @@ const CandidateMode: React.FC<CandidateModeProps> = ({ onResultsChange }) => {
             </AnimatedCard>
 
             <AnimatedCard delay={0.1}>
-                <Settings settings={settings} onSettingsChange={setSettings} isCandidateMode={true} />
+                <Settings
+                    settings={settings}
+                    onSettingsChange={setSettings}
+                    isCandidateMode={true}
+                    hasResults={hasAnalyzed}
+                />
             </AnimatedCard>
 
             <AnimatedCard delay={0.2}>

@@ -228,6 +228,14 @@ const AppContent = () => {
                 />
             </Helmet>
 
+            {/* Skip to main content link for keyboard navigation */}
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary-500 focus:text-white focus:rounded-lg focus:shadow-lg transition-all duration-200"
+            >
+                Skip to main content
+            </a>
+
             <AnimatedBackground />
 
             <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', position: 'relative' }}>
@@ -240,6 +248,7 @@ const AppContent = () => {
                     <AppBar
                         position="sticky"
                         elevation={0}
+                        component="header"
                         sx={{
                             background: mode === 'recruiter'
                                 ? 'rgba(15, 23, 42, 0.5)'
@@ -256,7 +265,7 @@ const AppContent = () => {
                             transition: 'all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                         }}
                     >
-                        <Toolbar sx={{ py: 2, px: { xs: 2, sm: 3, md: 4 } }}>
+                        <Toolbar sx={{ py: 2, px: { xs: 2, sm: 3, md: 4 } }} component="nav" aria-label="Main navigation">
                             <motion.div
                                 initial={false}
                                 animate={{
@@ -332,6 +341,8 @@ const AppContent = () => {
                 {/* Main Content with generous spacing */}
                 <Container
                     maxWidth="lg"
+                    component="main"
+                    id="main-content"
                     sx={{
                         py: { xs: 4, md: 6 },
                         px: { xs: 2, sm: 3, md: 4 },

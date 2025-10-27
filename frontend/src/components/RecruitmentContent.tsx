@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { Box } from '@mui/material';
 import Settings from './Settings';
 import Instructions from './Instructions';
-import JobDescriptionInput from './JobDescriptionInput';
+import JobDescriptionTabs from './JobDescriptionTabs';
 import JobDescriptionDisplay from './JobDescriptionDisplay';
-import ResumeUpload from './ResumeUpload';
+import EnhancedResumeUpload from './EnhancedResumeUpload';
 import ResultsDisplay from './ResultsDisplay';
+import DashboardAdapter from './DashboardAdapter';
+import CandidateDashboardAdapter from './CandidateDashboardAdapter';
 import CandidateMode from './CandidateMode';
 import AnimatedCard from './AnimatedCard';
+import ResumeImprovementSuggestions from './ResumeImprovementSuggestions';
 import { useSettings } from '../contexts/SettingsContext';
 import { useResume } from '../contexts/ResumeContext';
 import { useMode } from '../contexts/ModeContext';
@@ -18,7 +21,7 @@ const RecruitmentContent: React.FC = () => {
     const { settings, setSettings } = useSettings();
     const { results } = useResume();
     const { mode } = useMode();
-    const { jobDescription } = useJobDescription();
+    const { jobDescription, setJobDescription } = useJobDescription();
     const [candidateResults, setCandidateResults] = useState<JobAnalysisResult[]>([]);
 
     if (mode === 'candidate') {
@@ -27,12 +30,20 @@ const RecruitmentContent: React.FC = () => {
                 <CandidateMode onResultsChange={setCandidateResults} />
 
                 {candidateResults.length > 0 && (
-                    <AnimatedCard delay={0.5}>
-                        <ResultsDisplay
-                            results={candidateResults}
-                            isCandidateMode={true}
-                        />
-                    </AnimatedCard>
+                    <>
+                        <AnimatedCard delay={0.5}>
+                            <CandidateDashboardAdapter results={candidateResults} />
+                        </AnimatedCard>
+                        <AnimatedCard delay={0.6}>
+                            <ResultsDisplay
+                                results={candidateResults}
+                                isCandidateMode={true}
+                            />
+                        </AnimatedCard>
+                        <AnimatedCard delay={0.7}>
+                            <ResumeImprovementSuggestions results={candidateResults} />
+                        </AnimatedCard>
+                    </>
                 )}
             </Box>
         );
@@ -53,7 +64,9 @@ const RecruitmentContent: React.FC = () => {
             </AnimatedCard>
 
             <AnimatedCard delay={0.2}>
-                <JobDescriptionInput />
+                <JobDescriptionTabs
+                    onJobDescriptionSubmit={setJobDescription}
+                />
             </AnimatedCard>
 
             {jobDescription && jobDescription.trim() !== '' && (
@@ -63,19 +76,29 @@ const RecruitmentContent: React.FC = () => {
             )}
 
             <AnimatedCard delay={0.4}>
-                <ResumeUpload />
+                <EnhancedResumeUpload />
             </AnimatedCard>
 
             {results && results.length > 0 && (
-                <AnimatedCard delay={0.5}>
-                    <ResultsDisplay
-                        results={(results || []).map(result => ({
-                            ...result,
-                            is_best_match: result.is_best_match || false
-                        }))}
-                        isCandidateMode={false}
-                    />
-                </AnimatedCard>
+                <>
+                    <AnimatedCard delay={0.5}>
+                        <DashboardAdapter
+                            results={(results || []).map(result => ({
+                                ...result,
+                                is_best_match: result.is_best_match || false
+                            }))}
+                        />
+                    </AnimatedCard>
+                    <AnimatedCard delay={0.6}>
+                        <ResultsDisplay
+                            results={(results || []).map(result => ({
+                                ...result,
+                                is_best_match: result.is_best_match || false
+                            }))}
+                            isCandidateMode={false}
+                        />
+                    </AnimatedCard>
+                </>
             )}
         </Box>
     );

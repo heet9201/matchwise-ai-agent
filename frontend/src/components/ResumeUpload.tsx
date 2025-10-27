@@ -23,7 +23,7 @@ import { useDropzone } from 'react-dropzone';
 import { useJobDescription } from '../contexts/JobDescriptionContext';
 import { useResume } from '../contexts/ResumeContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { apiService } from '../services/api';
+import { apiService, AnalysisResult } from '../services/api';
 import DeleteIcon from '@mui/icons-material/Delete';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
@@ -167,7 +167,9 @@ const ResumeUpload: React.FC = () => {
 
                     // Store or update result if available
                     if (update.result) {
-                        const existingIndex = allResults.findIndex(r => r.filename === update.result?.filename);
+                        const existingIndex = allResults.findIndex(r =>
+                            'filename' in r && 'filename' in update.result! && r.filename === update.result.filename
+                        );
                         if (existingIndex >= 0) {
                             allResults[existingIndex] = update.result;
                         } else {
@@ -179,7 +181,9 @@ const ResumeUpload: React.FC = () => {
                     setUploadProgress(100);
 
                     if (update.results && update.results.length > 0) {
-                        const results = update.results.map(result => ({
+                        // Filter to only AnalysisResult types (with filename property)
+                        const analysisResults = update.results.filter((r): r is AnalysisResult => 'filename' in r);
+                        const results = analysisResults.map(result => ({
                             ...result,
                             is_best_match: result.is_best_match ?? false
                         }));
@@ -188,7 +192,7 @@ const ResumeUpload: React.FC = () => {
                         // Update all file statuses as complete
                         setUploadedFiles(files =>
                             files.map(file => {
-                                const result = update.results?.find(r => r.filename === file.file.name);
+                                const result = analysisResults.find(r => r.filename === file.file.name);
                                 if (result) {
                                     return {
                                         ...file,

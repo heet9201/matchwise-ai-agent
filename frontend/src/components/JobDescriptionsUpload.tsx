@@ -111,6 +111,18 @@ const JobDescriptionsUpload: React.FC<JobDescriptionsUploadProps> = ({ jobs, onJ
             return;
         }
 
+        // Validate URL format
+        try {
+            const url = new URL(urlInput.trim());
+            if (!['http:', 'https:'].includes(url.protocol)) {
+                setError('Please enter a valid HTTP or HTTPS URL');
+                return;
+            }
+        } catch {
+            setError('Please enter a valid URL (e.g., https://example.com/job-posting)');
+            return;
+        }
+
         if (jobs.length >= MAX_JOBS) {
             setError(`Maximum ${MAX_JOBS} job descriptions allowed`);
             return;
@@ -254,15 +266,15 @@ const JobDescriptionsUpload: React.FC<JobDescriptionsUploadProps> = ({ jobs, onJ
                             type="url"
                         />
                         <Alert severity="info" sx={{ mb: 2 }}>
-                            Note: URL fetching is currently in development. Please use file upload or text paste for now.
+                            Paste any public job posting URL (LinkedIn, Indeed, Glassdoor, company career pages, etc.)
                         </Alert>
                         <Button
                             variant="contained"
                             onClick={handleAddUrl}
                             startIcon={<AddIcon />}
-                            disabled={true} // Disabled until URL fetching is implemented
+                            disabled={!urlInput.trim()}
                         >
-                            Add from URL (Coming Soon)
+                            Add from URL
                         </Button>
                     </Box>
                 )}

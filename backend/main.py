@@ -1019,16 +1019,39 @@ async def analyze_jobs_stream(
                 except Exception as e:
                     logger.error(f"Failed to process job file {job_file.filename}: {str(e)}")
         
-        # Process URL-based job descriptions (basic implementation)
+        # Process URL-based job descriptions
         if job_urls:
             for idx, url in enumerate(job_urls):
-                # For now, we'll add placeholder - full implementation would require web scraping
-                logger.warning(f"URL-based job descriptions not fully implemented yet: {url}")
-                # job_descriptions.append({
-                #     "source": url,
-                #     "text": "URL processing to be implemented",
-                #     "company_name": f"Company from URL {idx + 1}"
-                # })
+                try:
+                    logger.info(f"Processing job URL {idx + 1}/{len(job_urls)}: {url}")
+                    
+                    # Fetch and extract job description from URL
+                    url_result = await file_service.fetch_job_description_from_url(url)
+                    
+                    # Use company name from URL extraction or from form data
+                    company_name = url_result['company_name']
+                    if company_names and len(company_names) > len(job_descriptions):
+                        # Use the company name from form if provided
+                        form_company_idx = len(job_descriptions)
+                        if form_company_idx < len(company_names):
+                            provided_company = company_names[form_company_idx].strip()
+                            if provided_company and provided_company.lower() != 'company':
+                                company_name = provided_company
+                    
+                    job_descriptions.append({
+                        "source": url,
+                        "text": url_result['text'],
+                        "company_name": company_name
+                    })
+                    
+                    logger.info(f"Successfully processed URL {url}: {len(url_result['text'])} characters extracted")
+                    
+                except HTTPException as he:
+                    logger.error(f"HTTP error processing job URL {url}: {he.detail}")
+                    # Continue processing other URLs instead of failing completely
+                except Exception as e:
+                    logger.error(f"Failed to process job URL {url}: {str(e)}")
+                    # Continue processing other URLs instead of failing completely
 
         if not job_descriptions:
             raise HTTPException(
