@@ -32,10 +32,9 @@ const recruiterSteps = [
         icon: <SettingsIcon />,
         description: `Start by setting your recruitment criteria:`,
         points: [
-            'Minimum Required Score: Set the minimum score (default 70%) candidates need to achieve',
-            'Maximum Missing Skills: Set how many required skills (default 3) candidates can lack',
+            'Minimum Required Score: Set the minimum score (default 70%) candidates need to achieve for acceptance',
         ],
-        tip: 'These settings help ensure you find the best matches for your position.',
+        tip: 'Candidates meeting this score threshold will receive acceptance emails, others will receive rejection emails.',
     },
     {
         label: 'Add Job Description',
@@ -69,9 +68,8 @@ const candidateSteps = [
         description: `Start by setting your job search criteria:`,
         points: [
             'Minimum Required Score: Set the minimum match score (default 70%) for job recommendations',
-            'Maximum Missing Skills: Set how many skills (default 3) you can afford to lack',
         ],
-        tip: 'These settings help identify jobs that best match your profile.',
+        tip: 'Jobs meeting this score threshold will have personalized application emails generated for you.',
     },
     {
         label: 'Upload Your Resume',

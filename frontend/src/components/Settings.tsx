@@ -4,7 +4,6 @@ import {
     Typography,
     Box,
     Slider,
-    TextField,
     Alert,
     Tooltip,
     IconButton,
@@ -15,7 +14,6 @@ import {
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ScoreIcon from '@mui/icons-material/Score';
-import PlaylistRemoveIcon from '@mui/icons-material/PlaylistRemove';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
@@ -55,14 +53,6 @@ const Settings: React.FC<SettingsProps> = ({
         });
     };
 
-    const handleMissingSkillsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const value = Math.max(0, Math.min(10, Number(event.target.value)));
-        onSettingsChange({
-            ...settings,
-            maxMissingSkills: value,
-        });
-    };
-
     const getScoreLabel = (score: number) => {
         if (isCandidateMode) {
             // Goal-oriented labels for candidates
@@ -76,13 +66,6 @@ const Settings: React.FC<SettingsProps> = ({
         if (score >= 75) return 'Selective';
         if (score >= 60) return 'Moderate';
         return 'Lenient';
-    };
-
-    const getSkillsLabel = (skills: number) => {
-        if (skills === 0) return 'Perfect Match Only';
-        if (skills <= 2) return 'High Standards';
-        if (skills <= 5) return 'Balanced';
-        return 'Flexible';
     };
 
     return (
@@ -222,7 +205,7 @@ const Settings: React.FC<SettingsProps> = ({
                 )}
 
                 <Grid container spacing={4}>
-                    <Grid item xs={12} md={isCandidateMode ? 12 : 6}>
+                    <Grid item xs={12}>
                         <Paper
                             elevation={1}
                             sx={{
@@ -242,7 +225,7 @@ const Settings: React.FC<SettingsProps> = ({
                                 </Box>
                                 <Tooltip title={isCandidateMode
                                     ? "Jobs must have at least this match score to be considered good matches. A higher percentage means you're being more selective about opportunities."
-                                    : "Candidates must achieve at least this score to be considered qualified. A higher percentage means more selective screening."
+                                    : "Candidates must achieve at least this score to receive acceptance emails. A higher percentage means more selective screening."
                                 }>
                                     <IconButton size="small">
                                         <HelpOutlineIcon fontSize="small" />
@@ -293,84 +276,11 @@ const Settings: React.FC<SettingsProps> = ({
                                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
                                     {isCandidateMode
                                         ? 'Lower goal = More opportunities | Higher goal = Better matches'
-                                        : 'Lower scores = More candidates qualify'}
+                                        : 'Lower scores = More candidates qualify | Higher scores = More selective'}
                                 </Typography>
                             </Box>
                         </Paper>
                     </Grid>
-
-                    {!isCandidateMode && (
-                        <Grid item xs={12} md={6}>
-                            <Paper
-                                elevation={1}
-                                sx={{
-                                    p: 3,
-                                    borderRadius: 2,
-                                    border: '2px solid',
-                                    borderColor: 'secondary.light',
-                                    bgcolor: 'background.paper',
-                                }}
-                            >
-                                <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-                                    <Box display="flex" alignItems="center">
-                                        <PlaylistRemoveIcon sx={{ color: 'secondary.main', mr: 1 }} />
-                                        <Typography variant="h6" fontWeight={600}>
-                                            Missing Skills
-                                        </Typography>
-                                    </Box>
-                                    <Tooltip title={isCandidateMode
-                                        ? "The maximum number of required skills you can be missing while a job is still considered a good match. Lower numbers mean you must match more required skills."
-                                        : "The maximum number of required skills that a candidate can be missing while still being considered qualified. Lower numbers mean candidates must match more required skills."
-                                    }>
-                                        <IconButton size="small">
-                                            <HelpOutlineIcon fontSize="small" />
-                                        </IconButton>
-                                    </Tooltip>
-                                </Box>
-
-                                <Box sx={{ px: 1 }}>
-                                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                                        <Chip
-                                            label={getSkillsLabel(settings.maxMissingSkills)}
-                                            color="secondary"
-                                            size="small"
-                                        />
-                                        <Typography
-                                            variant="h4"
-                                            color="secondary.main"
-                                            fontWeight={700}
-                                        >
-                                            {settings.maxMissingSkills}
-                                        </Typography>
-                                    </Box>
-                                    <TextField
-                                        type="number"
-                                        value={settings.maxMissingSkills}
-                                        onChange={handleMissingSkillsChange}
-                                        inputProps={{
-                                            min: 0,
-                                            max: 10,
-                                            style: {
-                                                fontSize: '1.5rem',
-                                                fontWeight: 600,
-                                                textAlign: 'center'
-                                            }
-                                        }}
-                                        fullWidth
-                                        sx={{
-                                            '& .MuiOutlinedInput-root': {
-                                                borderRadius: 2,
-                                            },
-                                        }}
-                                        helperText="Enter a number between 0-10"
-                                    />
-                                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                                        Lower values = Stricter requirements
-                                    </Typography>
-                                </Box>
-                            </Paper>
-                        </Grid>
-                    )}
                 </Grid>
 
                 {isCandidateMode && hasResults && (
@@ -404,7 +314,7 @@ const Settings: React.FC<SettingsProps> = ({
                             }}
                         >
                             <Typography variant="body2" fontWeight={500}>
-                                ✅ Current settings: Candidates need at least {settings.minimumScore}% match and can miss up to {settings.maxMissingSkills} required skills to qualify for interviews.
+                                ✅ Current settings: Candidates need at least <strong>{settings.minimumScore}%</strong> match to receive acceptance emails.
                             </Typography>
                         </Alert>
                     </Box>
