@@ -74,6 +74,11 @@ const EnhancedResumeUpload: React.FC = () => {
             return
         }
 
+        console.log('Starting resume analysis...');
+        console.log('Job description length:', jobDescription.length);
+        console.log('First 200 chars of JD:', jobDescription.substring(0, 200));
+        console.log('Number of resumes:', uploadedFiles.length);
+
         if (uploadedFiles.length === 0) {
             alert('Please upload at least one resume!')
             return

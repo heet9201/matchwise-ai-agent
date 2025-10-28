@@ -6,8 +6,6 @@ import JobDescriptionTabs from './JobDescriptionTabs';
 import JobDescriptionDisplay from './JobDescriptionDisplay';
 import EnhancedResumeUpload from './EnhancedResumeUpload';
 import ResultsDisplay from './ResultsDisplay';
-import DashboardAdapter from './DashboardAdapter';
-import CandidateDashboardAdapter from './CandidateDashboardAdapter';
 import CandidateMode from './CandidateMode';
 import AnimatedCard from './AnimatedCard';
 import ResumeImprovementSuggestions from './ResumeImprovementSuggestions';
@@ -32,15 +30,12 @@ const RecruitmentContent: React.FC = () => {
                 {candidateResults.length > 0 && (
                     <>
                         <AnimatedCard delay={0.5}>
-                            <CandidateDashboardAdapter results={candidateResults} />
-                        </AnimatedCard>
-                        <AnimatedCard delay={0.6}>
                             <ResultsDisplay
                                 results={candidateResults}
                                 isCandidateMode={true}
                             />
                         </AnimatedCard>
-                        <AnimatedCard delay={0.7}>
+                        <AnimatedCard delay={0.6}>
                             <ResumeImprovementSuggestions results={candidateResults} />
                         </AnimatedCard>
                     </>
@@ -80,25 +75,15 @@ const RecruitmentContent: React.FC = () => {
             </AnimatedCard>
 
             {results && results.length > 0 && (
-                <>
-                    <AnimatedCard delay={0.5}>
-                        <DashboardAdapter
-                            results={(results || []).map(result => ({
-                                ...result,
-                                is_best_match: result.is_best_match || false
-                            }))}
-                        />
-                    </AnimatedCard>
-                    <AnimatedCard delay={0.6}>
-                        <ResultsDisplay
-                            results={(results || []).map(result => ({
-                                ...result,
-                                is_best_match: result.is_best_match || false
-                            }))}
-                            isCandidateMode={false}
-                        />
-                    </AnimatedCard>
-                </>
+                <AnimatedCard delay={0.5}>
+                    <ResultsDisplay
+                        results={(results || []).map(result => ({
+                            ...result,
+                            is_best_match: result.is_best_match || false
+                        }))}
+                        isCandidateMode={false}
+                    />
+                </AnimatedCard>
             )}
         </Box>
     );

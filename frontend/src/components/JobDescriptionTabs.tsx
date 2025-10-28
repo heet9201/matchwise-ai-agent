@@ -10,6 +10,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { AnimatedLottie } from './ui/animated-lottie'
 import { fadeInUp } from '../lib/animations'
 import { cn } from '../lib/cn'
+import { apiService } from '../services/api'
 import {
     DocumentTextIcon,
     PencilSquareIcon,
@@ -177,10 +178,30 @@ We offer competitive compensation, excellent benefits, and opportunities for pro
         // Process each file
         for (const uploadedFile of newFiles) {
             try {
-                // Simulate file parsing (replace with actual API call)
-                await new Promise(resolve => setTimeout(resolve, 1500))
+                // Update status to parsing
+                setUploadedFiles(prev =>
+                    prev.map(f =>
+                        f.id === uploadedFile.id
+                            ? { ...f, status: 'parsing' }
+                            : f
+                    )
+                )
 
-                const extractedText = `Extracted content from ${uploadedFile.file.name}...`
+                // Actually call the API to extract text from the file
+                console.log('Uploading file to extract content:', uploadedFile.file.name);
+                const response = await apiService.uploadJobDescriptionFile(uploadedFile.file);
+
+                if (!response.success || !response.data) {
+                    throw new Error(response.error || 'Failed to process file');
+                }
+
+                const extractedText = response.data.job_description;
+                console.log('Extracted text length:', extractedText?.length);
+                console.log('First 200 chars:', extractedText?.substring(0, 200));
+
+                if (!extractedText || extractedText.trim().length < 50) {
+                    throw new Error(`File processed but text is too short (${extractedText?.trim().length || 0} characters). Please ensure the file contains readable text.`);
+                }
 
                 setUploadedFiles(prev =>
                     prev.map(f =>
@@ -195,6 +216,7 @@ We offer competitive compensation, excellent benefits, and opportunities for pro
                     onJobDescriptionSubmit(extractedText)
                 }
             } catch (error) {
+                console.error('File processing error:', error);
                 setUploadedFiles(prev =>
                     prev.map(f =>
                         f.id === uploadedFile.id

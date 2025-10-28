@@ -110,6 +110,11 @@ const ResumeUpload: React.FC = () => {
     const processFiles = useCallback(async () => {
         if (!jobDescription || uploadedFiles.length === 0) return;
 
+        console.log('Starting streaming resume analysis...');
+        console.log('Job description length:', jobDescription.length);
+        console.log('First 200 chars of JD:', jobDescription.substring(0, 200));
+        console.log('Number of resumes:', uploadedFiles.filter(f => f.status === 'pending').length);
+
         setIsLoading(true);
         setError(null);
         setUploadProgress(0);

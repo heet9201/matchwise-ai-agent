@@ -52,11 +52,21 @@ const JobDescriptionInput: React.FC = () => {
         try {
             const response = await apiService.uploadJobDescriptionFile(file);
             if (response.success && response.data) {
-                setJobDescription(response.data.job_description);
+                const extractedText = response.data.job_description;
+                console.log('Extracted job description length:', extractedText?.length);
+                console.log('First 200 chars:', extractedText?.substring(0, 200));
+
+                if (!extractedText || extractedText.trim().length < 50) {
+                    throw new Error(`File processed but text is too short (${extractedText?.trim().length || 0} characters). Please ensure the file contains readable text.`);
+                }
+
+                setJobDescription(extractedText);
+                console.log('Job description set successfully');
             } else {
                 throw new Error(response.error || 'Failed to process file');
             }
         } catch (error) {
+            console.error('File upload error:', error);
             setError(error instanceof Error ? error.message : 'Failed to process file');
         } finally {
             setLoading(false);

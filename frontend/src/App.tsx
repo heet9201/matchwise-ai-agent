@@ -298,7 +298,7 @@ const AppContent = () => {
                             <motion.div
                                 initial={false}
                                 animate={{
-                                    rotate: mode === 'recruiter' ? 0 : 180,
+                                    rotate: mode === 'recruiter' ? 0 : 360,
                                     scale: 1
                                 }}
                                 transition={{ duration: 0.6, type: 'spring', stiffness: 200 }}

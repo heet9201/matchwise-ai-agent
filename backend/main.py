@@ -357,25 +357,41 @@ async def generate_job_description(
 async def upload_job_description_file(file: UploadFile = File(...)):
     """Upload and process a job description file (PDF or DOCX)"""
     try:
+        logger.info(f"Received job description file upload: {file.filename}")
+        
         # Validate file type
         if not file.filename.lower().endswith(('.pdf', '.doc', '.docx')):
+            logger.error(f"Invalid file format: {file.filename}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="File must be PDF or DOC/DOCX format"
             )
 
+        logger.info(f"Processing job description file: {file.filename}")
         content = await file_service.process_file(file)
+        
+        logger.info(f"Successfully extracted {len(content)} characters from {file.filename}")
+        logger.debug(f"First 200 characters: {content[:200]}")
+        
+        if not content or len(content.strip()) < 50:
+            logger.error(f"Extracted content too short: {len(content.strip())} characters")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Extracted text is too short ({len(content.strip())} characters). Please ensure the file contains readable text."
+            )
         
         return APIResponse(
             success=True,
             message="File processed successfully",
             data={"job_description": content}
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error processing file: {str(e)}")
+        logger.error(f"Error processing file: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            detail=f"Error processing file: {str(e)}"
         )
 
 class ResumeAnalysisInput(BaseModel):
@@ -475,26 +491,16 @@ async def process_resumes_stream(
                     json_data = json.dumps(email_gen_progress, ensure_ascii=False)
                     yield f"data: {json_data}\n\n"
                     
-                    is_acceptable = (
-                        result["score"] >= minimum_score and
-                        len(result.get("missing_skills", [])) <= max_missing_skills
-                    )
+                    # Check ONLY the score (ignore missing skills)
+                    is_acceptable = result["score"] >= minimum_score
                     
                     try:
                         best_score = max(r["score"] for r in successful_results if "error" not in r)
-                        candidates_with_best_score = [
-                            r for r in successful_results 
-                            if "error" not in r and r["score"] == best_score
-                        ]
-                        min_missing_skills = min(
-                            len(r.get("missing_skills", [])) 
-                            for r in candidates_with_best_score
-                        )
                         
+                        # Mark as best match if candidate has the highest score
                         result["is_best_match"] = (
                             is_acceptable and 
-                            result["score"] == best_score and
-                            len(result.get("missing_skills", [])) == min_missing_skills
+                            result["score"] == best_score
                         )
 
                         if is_acceptable:
@@ -606,7 +612,8 @@ async def analyze_resumes_stream(
 async def analyze_resumes(
     job_description: str = Form(...),
     resumes: List[UploadFile] = File(...),
-    params: ResumeAnalysisInput = Depends()
+    minimum_score: float = Form(default=70.0),
+    max_missing_skills: int = Form(default=3)
 ):
     """
     Analyze multiple resumes against a job description.
@@ -614,17 +621,31 @@ async def analyze_resumes(
     Args:
         job_description: The job description to match against
         resumes: List of resume files (PDF/DOC/DOCX)
-        params: Analysis parameters including minimum score and max missing skills
+        minimum_score: Minimum score required for acceptance (default: 70.0)
+        max_missing_skills: Maximum number of missing skills allowed (default: 3)
     
     Returns:
         Analysis results for each resume including scores and recommendations
     """
     try:
         # Input validation with detailed error messages
-        if not job_description or len(job_description.strip()) < 50:
+        logger.info(f"Received job description analysis request with {len(resumes) if resumes else 0} resumes")
+        logger.debug(f"Job description length: {len(job_description) if job_description else 0} characters")
+        
+        if not job_description:
+            logger.error("Job description is missing")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Job description is required and must be at least 50 characters long"
+                detail="Job description is required"
+            )
+        
+        job_description_stripped = job_description.strip()
+        if len(job_description_stripped) < 50:
+            logger.error(f"Job description too short: {len(job_description_stripped)} characters (minimum 50 required)")
+            logger.debug(f"Job description content: {job_description_stripped[:200]}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Job description must be at least 50 characters long. Received: {len(job_description_stripped)} characters"
             )
 
         if not resumes:
@@ -698,36 +719,21 @@ async def analyze_resumes(
                 # Sort candidates by score
                 successful_results.sort(key=lambda x: x["score"], reverse=True)
                 
-                logger.info(f"Evaluating candidates with minimum score: {params.minimum_score}% and max missing skills: {params.max_missing_skills}")
+                logger.info(f"Evaluating candidates with minimum score: {minimum_score}%")
                 
                 for result in results:
                     if "error" not in result:
-                        # Simple evaluation based on minimum score and missing skills
-                        is_acceptable = (
-                            result["score"] >= params.minimum_score and  # Meets minimum score threshold
-                            len(result.get("missing_skills", [])) <= params.max_missing_skills  # Doesn't exceed missing skills limit
-                        )
+                        # Simple evaluation based ONLY on minimum score (ignoring missing skills)
+                        is_acceptable = result["score"] >= minimum_score  # Only check score threshold
                         
                         try:
-                            # Find the best score and minimum missing skills among acceptable candidates
+                            # Find the best score among acceptable candidates
                             best_score = max(r["score"] for r in successful_results if "error" not in r)
-                            candidates_with_best_score = [
-                                r for r in successful_results 
-                                if "error" not in r and r["score"] == best_score
-                            ]
-                            min_missing_skills = min(
-                                len(r.get("missing_skills", [])) 
-                                for r in candidates_with_best_score
-                            )
                             
-                            # Mark as best match if:
-                            # 1. Candidate is acceptable AND
-                            # 2. Has the highest score AND
-                            # 3. Has the minimum number of missing skills among highest scorers
+                            # Mark as best match if candidate has the highest score
                             result["is_best_match"] = (
                                 is_acceptable and 
-                                result["score"] == best_score and
-                                len(result.get("missing_skills", [])) == min_missing_skills
+                                result["score"] == best_score
                             )
 
                             if is_acceptable:
@@ -870,27 +876,14 @@ async def process_jobs_stream(
                     json_data = json.dumps(email_gen_progress, ensure_ascii=False)
                     yield f"data: {json_data}\n\n"
                     
-                    is_good_match = (
-                        result["score"] >= minimum_score and
-                        len(result.get("missing_skills", [])) <= max_missing_skills
-                    )
+                    # For candidate mode: only consider score, not missing skills
+                    is_good_match = result["score"] >= minimum_score
                     
                     try:
                         best_score = max(r["score"] for r in successful_results if "error" not in r)
-                        jobs_with_best_score = [
-                            r for r in successful_results 
-                            if "error" not in r and r["score"] == best_score
-                        ]
-                        min_missing_skills_count = min(
-                            len(r.get("missing_skills", [])) 
-                            for r in jobs_with_best_score
-                        )
                         
-                        result["is_best_match"] = (
-                            is_good_match and 
-                            result["score"] == best_score and
-                            len(result.get("missing_skills", [])) == min_missing_skills_count
-                        )
+                        # Mark best match based ONLY on highest score (ignore missing skills)
+                        result["is_best_match"] = result["score"] == best_score
 
                         if is_good_match:
                             # Generate application email for good matches

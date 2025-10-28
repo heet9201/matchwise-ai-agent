@@ -7,6 +7,7 @@ interface BaseResult {
     missing_skills?: string[]
     remarks?: string
     email?: string
+    email_type?: string
 }
 
 interface CandidateResult extends BaseResult {
@@ -44,6 +45,8 @@ const CandidateDashboardAdapter: React.FC<CandidateDashboardAdapterProps> = ({ r
                 skills: matchedSkills,
                 missingSkills: result.missing_skills || [],
                 isBestMatch: result.is_best_match || false,
+                email: result.email,
+                email_type: result.email_type,
             }
         })
 

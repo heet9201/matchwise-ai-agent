@@ -75,6 +75,13 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, isCandidateMod
     };
 
     const handleEmailClick = (result: RecruiterResult | CandidateResult) => {
+        console.log('Email icon clicked:', {
+            email: result.email,
+            emailType: result.email_type,
+            hasEmail: !!result.email,
+            hasEmailType: !!result.email_type,
+        });
+
         if (result.email_type) {
             setSelectedEmail({
                 email: result.email || '',
@@ -83,6 +90,8 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ results, isCandidateMod
                 score: result.score,
                 isBestMatch: result.is_best_match || false,
             });
+        } else {
+            console.warn('Email type is missing, cannot open dialog');
         }
     };
 

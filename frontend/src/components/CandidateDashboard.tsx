@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import MetricCard from './MetricCard'
 import SkillRadarChart from './SkillRadarChart'
 import ScoreGauge from './ScoreGauge'
+import CandidateEmailDisplay from './CandidateEmailDisplay'
 import { Card, CardHeader, CardTitle, CardContent } from './ui/card'
 import { Button } from './ui/button'
 import { fadeInUp, staggerContainer } from '../lib/animations'
@@ -15,6 +16,8 @@ import {
     ChartBarIcon,
     LightBulbIcon,
     ArrowTrendingUpIcon,
+    EnvelopeIcon,
+    EnvelopeOpenIcon,
 } from '@heroicons/react/24/outline'
 
 interface JobData {
@@ -25,6 +28,8 @@ interface JobData {
     skills: string[]
     missingSkills: string[]
     isBestMatch: boolean
+    email?: string
+    email_type?: string
 }
 
 interface CandidateDashboardProps {
@@ -43,11 +48,19 @@ const CandidateDashboard: React.FC<CandidateDashboardProps> = ({
     className,
 }) => {
     const [selectedJob, setSelectedJob] = useState<JobData | null>(jobs[0] || null)
+    const [emailModalOpen, setEmailModalOpen] = useState(false)
+    const [selectedEmailJob, setSelectedEmailJob] = useState<JobData | null>(null)
+
+    const handleViewEmail = (job: JobData) => {
+        setSelectedEmailJob(job)
+        setEmailModalOpen(true)
+    }
 
     // Calculate metrics
     const metrics = useMemo(() => {
         const goodMatches = jobs.filter(j => j.score >= 70).length
         const bestMatch = jobs.find(j => j.isBestMatch) || jobs[0]
+        const emailsReady = jobs.filter(j => j.email && j.email_type === 'application').length
 
         // Get all missing skills and count frequency
         const skillFrequency = new Map<string, number>()
@@ -72,6 +85,7 @@ const CandidateDashboard: React.FC<CandidateDashboardProps> = ({
         return {
             goodMatches,
             bestMatch,
+            emailsReady,
             topMissingSkills,
             potentialIncrease,
             qualificationRate: totalJobs > 0 ? Math.round((goodMatches / totalJobs) * 100) : 0,
@@ -99,7 +113,7 @@ const CandidateDashboard: React.FC<CandidateDashboardProps> = ({
             <motion.div {...fadeInUp}>
                 <Card className="glassmorphism border-purple-500/30">
                     <CardHeader>
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between flex-wrap gap-4">
                             <div>
                                 <CardTitle className="text-3xl flex items-center gap-3">
                                     <SparklesIcon className="w-8 h-8 text-purple-400" />
@@ -108,11 +122,26 @@ const CandidateDashboard: React.FC<CandidateDashboardProps> = ({
                                 <p className="text-white/60 mt-2">
                                     AI-powered analysis of your resume against {totalJobs} job opportunities
                                 </p>
+                                {metrics.emailsReady > 0 && (
+                                    <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/20">
+                                        <EnvelopeIcon className="w-5 h-5 text-green-400" />
+                                        <span className="text-green-300 font-semibold">
+                                            {metrics.emailsReady} application email{metrics.emailsReady > 1 ? 's' : ''} ready to send!
+                                        </span>
+                                    </div>
+                                )}
                             </div>
-                            <Button variant="gradient" size="lg">
-                                <ArrowTrendingUpIcon className="w-5 h-5 mr-2" />
-                                Improve Resume
-                            </Button>
+                            <div className="flex flex-col gap-2">
+                                <Button variant="gradient" size="lg">
+                                    <ArrowTrendingUpIcon className="w-5 h-5 mr-2" />
+                                    Improve Resume
+                                </Button>
+                                {metrics.emailsReady > 0 && (
+                                    <span className="text-xs text-white/50 text-center">
+                                        Scroll down to view emails
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </CardHeader>
                 </Card>
@@ -121,7 +150,7 @@ const CandidateDashboard: React.FC<CandidateDashboardProps> = ({
             {/* Metrics Grid */}
             <motion.div
                 {...staggerContainer}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4"
             >
                 <MetricCard
                     title="Jobs Analyzed"
@@ -138,6 +167,15 @@ const CandidateDashboard: React.FC<CandidateDashboardProps> = ({
                     color="success"
                     trend={{ value: metrics.qualificationRate, isPositive: metrics.qualificationRate >= 50 }}
                     delay={0.1}
+                />
+                <MetricCard
+                    title="Emails Ready"
+                    value={metrics.emailsReady}
+                    suffix={` / ${metrics.goodMatches}`}
+                    icon={<EnvelopeIcon className="w-6 h-6" />}
+                    color="secondary"
+                    trend={{ value: metrics.emailsReady, isPositive: metrics.emailsReady > 0 }}
+                    delay={0.15}
                 />
                 <MetricCard
                     title="Your Average Score"
@@ -345,20 +383,28 @@ const CandidateDashboard: React.FC<CandidateDashboardProps> = ({
                                     .map((job) => (
                                         <div
                                             key={job.id}
-                                            className={`p-4 rounded-lg border transition-all cursor-pointer hover:scale-[1.02] ${job.isBestMatch
-                                                    ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/40'
-                                                    : job.score >= 70
-                                                        ? 'bg-green-500/5 border-green-500/20 hover:border-green-500/40'
-                                                        : 'bg-slate-800/30 border-slate-700/30 hover:border-slate-600/50'
+                                            className={`p-4 rounded-lg border transition-all ${job.isBestMatch
+                                                ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/40'
+                                                : job.score >= 70
+                                                    ? 'bg-green-500/5 border-green-500/20 hover:border-green-500/40'
+                                                    : 'bg-slate-800/30 border-slate-700/30 hover:border-slate-600/50'
                                                 }`}
-                                            onClick={() => setSelectedJob(job)}
                                         >
                                             <div className="flex items-center justify-between">
-                                                <div className="flex-1">
+                                                <div
+                                                    className="flex-1 cursor-pointer"
+                                                    onClick={() => setSelectedJob(job)}
+                                                >
                                                     <div className="flex items-center gap-3 mb-2">
                                                         {job.isBestMatch && (
                                                             <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
                                                                 ⭐ Best Match
+                                                            </span>
+                                                        )}
+                                                        {job.email && job.email_type === 'application' && (
+                                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-500/20 text-green-300 border border-green-500/30 flex items-center gap-1">
+                                                                <EnvelopeIcon className="w-3 h-3" />
+                                                                Email Ready
                                                             </span>
                                                         )}
                                                         <h3 className="text-lg font-semibold text-white">{job.company}</h3>
@@ -381,20 +427,33 @@ const CandidateDashboard: React.FC<CandidateDashboardProps> = ({
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="text-right ml-4">
-                                                    <div className="text-3xl font-bold text-white mb-1">
-                                                        {job.score}%
-                                                    </div>
-                                                    <div className={`text-xs font-semibold ${job.score >= 80 ? 'text-green-300' :
+                                                <div className="text-right ml-4 flex flex-col items-end gap-2">
+                                                    <div>
+                                                        <div className="text-3xl font-bold text-white mb-1">
+                                                            {job.score}%
+                                                        </div>
+                                                        <div className={`text-xs font-semibold ${job.score >= 80 ? 'text-green-300' :
                                                             job.score >= 70 ? 'text-blue-300' :
                                                                 job.score >= 60 ? 'text-yellow-300' :
                                                                     'text-orange-300'
-                                                        }`}>
-                                                        {job.score >= 80 ? 'Excellent' :
-                                                            job.score >= 70 ? 'Good Match' :
-                                                                job.score >= 60 ? 'Fair Match' :
-                                                                    'Needs Work'}
+                                                            }`}>
+                                                            {job.score >= 80 ? 'Excellent' :
+                                                                job.score >= 70 ? 'Good Match' :
+                                                                    job.score >= 60 ? 'Fair Match' :
+                                                                        'Needs Work'}
+                                                        </div>
                                                     </div>
+                                                    {job.email && (
+                                                        <Button
+                                                            variant={job.email_type === 'application' ? 'gradient' : 'outline'}
+                                                            size="sm"
+                                                            onClick={() => handleViewEmail(job)}
+                                                            className="flex items-center gap-1 mt-2"
+                                                        >
+                                                            <EnvelopeOpenIcon className="w-4 h-4" />
+                                                            {job.email_type === 'application' ? 'View Email' : 'View Info'}
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -507,12 +566,24 @@ const CandidateDashboard: React.FC<CandidateDashboardProps> = ({
 
                             {/* Actions */}
                             <div className="flex gap-3 mt-6 pt-6 border-t border-white/10">
-                                <Button variant="gradient" size="lg">
-                                    <SparklesIcon className="w-5 h-5 mr-2" />
-                                    Apply to This Job
-                                </Button>
+                                {selectedJob.email && selectedJob.email_type === 'application' && (
+                                    <Button
+                                        variant="gradient"
+                                        size="lg"
+                                        onClick={() => handleViewEmail(selectedJob)}
+                                    >
+                                        <EnvelopeIcon className="w-5 h-5 mr-2" />
+                                        View Application Email
+                                    </Button>
+                                )}
+                                {!selectedJob.email && selectedJob.score >= 70 && (
+                                    <Button variant="gradient" size="lg">
+                                        <SparklesIcon className="w-5 h-5 mr-2" />
+                                        Generate Application Email
+                                    </Button>
+                                )}
                                 <Button variant="outline" size="lg">
-                                    View Cover Letter
+                                    View Full Job Details
                                 </Button>
                                 <Button variant="ghost" size="lg">
                                     Save for Later
@@ -521,6 +592,22 @@ const CandidateDashboard: React.FC<CandidateDashboardProps> = ({
                         </CardContent>
                     </Card>
                 </motion.div>
+            )}
+
+            {/* Email Display Modal */}
+            {selectedEmailJob && selectedEmailJob.email && (
+                <CandidateEmailDisplay
+                    email={selectedEmailJob.email}
+                    emailType={selectedEmailJob.email_type || 'application'}
+                    companyName={selectedEmailJob.company}
+                    score={selectedEmailJob.score}
+                    jobSource={selectedEmailJob.jobSource}
+                    isOpen={emailModalOpen}
+                    onClose={() => {
+                        setEmailModalOpen(false)
+                        setSelectedEmailJob(null)
+                    }}
+                />
             )}
         </div>
     )

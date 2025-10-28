@@ -92,9 +92,10 @@ const candidateSteps = [
             'Upload job description files (PDF, DOC, DOCX)',
             'Type or paste job descriptions manually',
             'Provide links to job postings (Coming soon)',
-            'The system analyzes each job and generates personalized cover letters',
+            'The system analyzes each job against your resume',
+            'For good matches (score ≥ goal %), personalized application emails are generated automatically',
         ],
-        tip: 'Add multiple jobs at once to compare matches efficiently.',
+        tip: 'Ready-to-send application emails save you hours of customization work!',
     },
 ];
 
