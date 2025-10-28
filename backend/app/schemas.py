@@ -31,3 +31,29 @@ class APIResponse(BaseModel):
     message: str
     data: Optional[dict] = None
     error: Optional[str] = None
+
+class FeedbackType(str, Enum):
+    FEATURE_LIKED = "feature_liked"
+    NOT_WORKING = "not_working"
+    IMPROVEMENT = "improvement"
+    BUG_REPORT = "bug_report"
+    OTHER = "other"
+
+class FeedbackSubmission(BaseModel):
+    feedback_type: FeedbackType
+    message: str
+    page: Optional[str] = None
+    feature_name: Optional[str] = None
+
+class FeedbackResponse(BaseModel):
+    id: str
+    feedback_type: str
+    message: str
+    page: Optional[str]
+    feature_name: Optional[str]
+    timestamp: str
+
+class FeedbackListResponse(BaseModel):
+    success: bool
+    feedbacks: List[FeedbackResponse]
+    total_count: int

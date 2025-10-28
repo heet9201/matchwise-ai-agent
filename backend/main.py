@@ -16,7 +16,8 @@ from app.models import JobDescription, ResumeAnalysis
 from app.services.ai_service import AIService
 from app.services.file_service import FileService
 from app.services.email_service import EmailService
-from app.schemas import JobDescriptionRequest, ResumeAnalysisResult, APIResponse
+from app.schemas import JobDescriptionRequest, ResumeAnalysisResult, APIResponse, FeedbackSubmission, FeedbackResponse, FeedbackListResponse
+from app.services.feedback_service import save_feedback, get_all_feedbacks, get_feedback_stats
 
 # Configure logging with more detailed format
 logging.basicConfig(
@@ -1081,6 +1082,87 @@ async def analyze_jobs_stream(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
+        )
+
+# ============================================
+# Feedback Endpoints
+# ============================================
+
+@app.post("/api/feedback", response_model=FeedbackResponse, tags=["Feedback"])
+async def submit_feedback(feedback: FeedbackSubmission):
+    """
+    Submit user feedback about features, bugs, or improvements.
+    
+    - **feedback_type**: Type of feedback (feature_liked, not_working, improvement, bug_report, other)
+    - **message**: Feedback message from user
+    - **page**: Optional page/route where feedback was submitted
+    - **feature_name**: Optional name of the feature being discussed
+    """
+    try:
+        logger.info(f"Received feedback: {feedback.feedback_type}")
+        
+        feedback_entry = save_feedback(
+            feedback_type=feedback.feedback_type,
+            message=feedback.message,
+            page=feedback.page,
+            feature_name=feedback.feature_name
+        )
+        
+        logger.info(f"Feedback saved with ID: {feedback_entry['id']}")
+        return FeedbackResponse(**feedback_entry)
+        
+    except Exception as e:
+        logger.error(f"Error saving feedback: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save feedback: {str(e)}"
+        )
+
+@app.get("/api/feedback", response_model=FeedbackListResponse, tags=["Feedback"])
+async def get_feedbacks(
+    limit: Optional[int] = None,
+    feedback_type: Optional[str] = None
+):
+    """
+    Get all submitted feedbacks with optional filtering.
+    
+    - **limit**: Maximum number of feedbacks to return
+    - **feedback_type**: Filter by feedback type
+    """
+    try:
+        feedbacks = get_all_feedbacks(limit=limit, feedback_type=feedback_type)
+        
+        feedback_responses = [FeedbackResponse(**fb) for fb in feedbacks]
+        
+        return FeedbackListResponse(
+            success=True,
+            feedbacks=feedback_responses,
+            total_count=len(feedback_responses)
+        )
+        
+    except Exception as e:
+        logger.error(f"Error retrieving feedbacks: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve feedbacks: {str(e)}"
+        )
+
+@app.get("/api/feedback/stats", tags=["Feedback"])
+async def get_feedback_statistics():
+    """
+    Get statistics about submitted feedbacks.
+    """
+    try:
+        stats = get_feedback_stats()
+        return {
+            "success": True,
+            "stats": stats
+        }
+    except Exception as e:
+        logger.error(f"Error getting feedback stats: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get feedback stats: {str(e)}"
         )
 
 if __name__ == "__main__":

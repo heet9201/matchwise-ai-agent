@@ -41,6 +41,28 @@ export interface JobAnalysisResult {
   error?: string;
 }
 
+export interface FeedbackData {
+  feedback_type: string;
+  message: string;
+  page?: string;
+  feature_name?: string;
+}
+
+export interface FeedbackResponse {
+  id: string;
+  feedback_type: string;
+  message: string;
+  page?: string;
+  feature_name?: string;
+  timestamp: string;
+}
+
+export interface FeedbackListResponse {
+  success: boolean;
+  feedbacks: FeedbackResponse[];
+  total_count: number;
+}
+
 export interface ProgressUpdate {
   type: "progress" | "complete" | "error" | "email_generation";
   current?: number;
@@ -327,6 +349,79 @@ export const apiService = {
         throw error;
       }
       throw new Error("Unknown error occurred during streaming");
+    }
+  },
+
+  // Feedback APIs
+  submitFeedback: async (
+    feedbackData: FeedbackData
+  ): Promise<FeedbackResponse> => {
+    try {
+      const response = await axios.post(
+        `${API_URL}/api/feedback`,
+        feedbackData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(
+          error.response?.data?.detail || "Failed to submit feedback"
+        );
+      }
+      throw error;
+    }
+  },
+
+  getFeedbacks: async (
+    limit?: number,
+    feedbackType?: string
+  ): Promise<FeedbackListResponse> => {
+    try {
+      const params = new URLSearchParams();
+      if (limit) params.append("limit", limit.toString());
+      if (feedbackType) params.append("feedback_type", feedbackType);
+
+      const response = await axios.get(
+        `${API_URL}/api/feedback${
+          params.toString() ? `?${params.toString()}` : ""
+        }`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(
+          error.response?.data?.detail || "Failed to fetch feedbacks"
+        );
+      }
+      throw error;
+    }
+  },
+
+  getFeedbackStats: async (): Promise<any> => {
+    try {
+      const response = await axios.get(`${API_URL}/api/feedback/stats`, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error(
+          error.response?.data?.detail || "Failed to fetch feedback stats"
+        );
+      }
+      throw error;
     }
   },
 };

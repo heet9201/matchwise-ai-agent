@@ -8,11 +8,14 @@ import RecruitmentContent from './components/RecruitmentContent'
 import AnimatedBackground from './components/AnimatedBackground'
 import PageTransition from './components/PageTransition'
 import ModeToggle from './components/ModeToggle'
+import FeedbackPopup from './components/FeedbackPopup'
+import FeedbackViewer from './components/FeedbackViewer'
 import { JobDescriptionProvider } from './contexts/JobDescriptionContext'
 import { ResumeProvider } from './contexts/ResumeContext'
 import { SettingsProvider } from './contexts/SettingsContext'
 import { ModeProvider, useMode } from './contexts/ModeContext'
 import { motion } from 'framer-motion'
+import { apiService } from './services/api'
 
 const theme = createTheme({
     palette: {
@@ -210,6 +213,32 @@ const theme = createTheme({
 const AppContent = () => {
     const { mode } = useMode();
 
+    // Check if we're on the feedback viewer page
+    const isFeedbackViewerPage = window.location.pathname === '/feedback-admin';
+
+    const handleFeedbackSubmit = async (feedbackData: any) => {
+        try {
+            await apiService.submitFeedback(feedbackData);
+        } catch (error) {
+            console.error('Failed to submit feedback:', error);
+            throw error;
+        }
+    };
+
+    // Render feedback viewer if on that route
+    if (isFeedbackViewerPage) {
+        return (
+            <>
+                <Helmet>
+                    <title>Feedback Dashboard - MatchWise</title>
+                    <meta name="description" content="View and manage user feedback" />
+                </Helmet>
+                <AnimatedBackground />
+                <FeedbackViewer />
+            </>
+        );
+    }
+
     return (
         <>
             <Helmet>
@@ -401,6 +430,9 @@ const AppContent = () => {
                     </Paper>
                 </motion.div>
             </Box>
+
+            {/* Feedback Popup */}
+            <FeedbackPopup onSubmit={handleFeedbackSubmit} />
         </>
     );
 };
