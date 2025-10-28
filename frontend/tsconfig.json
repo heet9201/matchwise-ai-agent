@@ -19,10 +19,9 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "baseUrl": "src",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "lib/*": ["lib/*"]
+      "@/*": ["src/*"]
     }
   },
   "include": ["src"],
