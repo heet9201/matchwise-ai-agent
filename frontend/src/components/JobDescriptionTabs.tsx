@@ -312,21 +312,21 @@ We offer competitive compensation, excellent benefits, and opportunities for pro
 
     return (
         <Card className={cn('bg-slate-900/40 backdrop-blur-xl border border-white/10', className)}>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-6">
                 <motion.div {...fadeInUp}>
                     <Tabs value={activeTab} onValueChange={handleTabChange}>
-                        <TabsList className="grid w-full grid-cols-3 mb-6">
-                            <TabsTrigger value="upload" className="gap-2">
-                                <CloudArrowUpIcon className="w-4 h-4" />
-                                Upload File
+                        <TabsList className="grid w-full grid-cols-3 mb-4 sm:mb-6 h-auto gap-1">
+                            <TabsTrigger value="upload" className="gap-1 sm:gap-2 px-1.5 sm:px-3 py-2.5 text-[0.7rem] sm:text-sm flex-col xs:flex-row min-h-[60px] xs:min-h-[48px]">
+                                <CloudArrowUpIcon className="w-5 h-5 xs:w-4 xs:h-4 flex-shrink-0" />
+                                <span className="leading-tight text-center xs:text-left">Upload</span>
                             </TabsTrigger>
-                            <TabsTrigger value="manual" className="gap-2">
-                                <PencilSquareIcon className="w-4 h-4" />
-                                Manual Input
+                            <TabsTrigger value="manual" className="gap-1 sm:gap-2 px-1.5 sm:px-3 py-2.5 text-[0.7rem] sm:text-sm flex-col xs:flex-row min-h-[60px] xs:min-h-[48px]">
+                                <PencilSquareIcon className="w-5 h-5 xs:w-4 xs:h-4 flex-shrink-0" />
+                                <span className="leading-tight text-center xs:text-left">Manual</span>
                             </TabsTrigger>
-                            <TabsTrigger value="ai-generate" className="gap-2">
-                                <SparklesIcon className="w-4 h-4" />
-                                AI Generate
+                            <TabsTrigger value="ai-generate" className="gap-1 sm:gap-2 px-1 sm:px-3 py-2.5 text-[0.65rem] sm:text-sm flex-col xs:flex-row min-h-[60px] xs:min-h-[48px]">
+                                <SparklesIcon className="w-5 h-5 xs:w-4 xs:h-4 flex-shrink-0" />
+                                <span className="leading-tight text-center xs:text-left whitespace-normal">Generate with AI</span>
                             </TabsTrigger>
                         </TabsList>
 

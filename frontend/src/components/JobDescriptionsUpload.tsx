@@ -160,17 +160,33 @@ const JobDescriptionsUpload: React.FC<JobDescriptionsUploadProps> = ({ jobs, onJ
     };
 
     return (
-        <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <WorkIcon color="primary" />
+        <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+            <Typography
+                variant="h6"
+                gutterBottom
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    fontSize: { xs: '1rem', sm: '1.25rem' }
+                }}
+            >
+                <WorkIcon color="primary" sx={{ fontSize: { xs: 20, sm: 24 } }} />
                 Add Job Descriptions
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                    mb: 2,
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                }}
+            >
                 Add up to {MAX_JOBS} job descriptions to analyze ({jobs.length}/{MAX_JOBS})
             </Typography>
 
             {error && (
-                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+                <Alert severity="error" sx={{ mb: 2, fontSize: { xs: '0.75rem', sm: '0.875rem' } }} onClose={() => setError(null)}>
                     {error}
                 </Alert>
             )}
@@ -178,11 +194,44 @@ const JobDescriptionsUpload: React.FC<JobDescriptionsUploadProps> = ({ jobs, onJ
             <Tabs
                 value={tabValue}
                 onChange={(_, newValue) => setTabValue(newValue)}
-                sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}
+                variant="fullWidth"
+                sx={{
+                    borderBottom: 1,
+                    borderColor: 'divider',
+                    mb: 2,
+                    minHeight: { xs: 56, sm: 64 },
+                    '& .MuiTab-root': {
+                        minHeight: { xs: 56, sm: 64 },
+                        fontSize: { xs: '0.7rem', sm: '0.875rem' },
+                        px: { xs: 0.5, sm: 2 },
+                        py: { xs: 1.5, sm: 2 },
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        gap: { xs: 0.5, sm: 1 },
+                    },
+                    '& .MuiTab-iconWrapper': {
+                        marginRight: { xs: 0, sm: 1 },
+                        marginBottom: { xs: 0.25, sm: 0 }
+                    }
+                }}
             >
-                <Tab label="Upload Files" icon={<DescriptionIcon />} iconPosition="start" />
-                <Tab label="Paste Text" icon={<TextFieldsIcon />} iconPosition="start" />
-                <Tab label="From URL" icon={<LinkIcon />} iconPosition="start" />
+                <Tab
+                    label="Upload"
+                    icon={<DescriptionIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />}
+                    iconPosition="top"
+                    wrapped
+                />
+                <Tab
+                    label="Paste Text"
+                    icon={<TextFieldsIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />}
+                    iconPosition="top"
+                    wrapped
+                />
+                <Tab
+                    label="From URL"
+                    icon={<LinkIcon sx={{ fontSize: { xs: 20, sm: 24 } }} />}
+                    iconPosition="top"
+                    wrapped
+                />
             </Tabs>
 
             <Box sx={{ mb: 3 }}>
@@ -193,7 +242,7 @@ const JobDescriptionsUpload: React.FC<JobDescriptionsUploadProps> = ({ jobs, onJ
                             border: '2px dashed',
                             borderColor: isDragActive ? 'primary.main' : 'grey.300',
                             borderRadius: 2,
-                            p: 4,
+                            p: { xs: 2, sm: 4 },
                             textAlign: 'center',
                             cursor: 'pointer',
                             bgcolor: isDragActive ? 'action.hover' : 'background.paper',
@@ -205,11 +254,11 @@ const JobDescriptionsUpload: React.FC<JobDescriptionsUploadProps> = ({ jobs, onJ
                         }}
                     >
                         <input {...getInputProps()} />
-                        <DescriptionIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-                        <Typography variant="h6" gutterBottom>
+                        <DescriptionIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: 'primary.main', mb: 2 }} />
+                        <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                             {isDragActive ? 'Drop job description files here' : 'Drag & drop job descriptions'}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                             or click to browse (PDF, DOC, DOCX - max 10MB each)
                         </Typography>
                     </Box>
@@ -224,6 +273,12 @@ const JobDescriptionsUpload: React.FC<JobDescriptionsUploadProps> = ({ jobs, onJ
                             onChange={(e) => setCompanyName(e.target.value)}
                             sx={{ mb: 2 }}
                             size="small"
+                            InputProps={{
+                                sx: { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                            }}
+                            InputLabelProps={{
+                                sx: { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                            }}
                         />
                         <TextField
                             fullWidth
@@ -234,12 +289,20 @@ const JobDescriptionsUpload: React.FC<JobDescriptionsUploadProps> = ({ jobs, onJ
                             onChange={(e) => setTextInput(e.target.value)}
                             placeholder="Paste the job description text here (minimum 50 characters)"
                             sx={{ mb: 2 }}
+                            InputProps={{
+                                sx: { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                            }}
+                            InputLabelProps={{
+                                sx: { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                            }}
                         />
                         <Button
                             variant="contained"
                             onClick={handleAddText}
                             startIcon={<AddIcon />}
                             disabled={jobs.length >= MAX_JOBS}
+                            fullWidth
+                            sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
                         >
                             Add Job Description
                         </Button>
@@ -255,6 +318,12 @@ const JobDescriptionsUpload: React.FC<JobDescriptionsUploadProps> = ({ jobs, onJ
                             onChange={(e) => setCompanyName(e.target.value)}
                             sx={{ mb: 2 }}
                             size="small"
+                            InputProps={{
+                                sx: { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                            }}
+                            InputLabelProps={{
+                                sx: { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                            }}
                         />
                         <TextField
                             fullWidth
@@ -264,8 +333,14 @@ const JobDescriptionsUpload: React.FC<JobDescriptionsUploadProps> = ({ jobs, onJ
                             placeholder="https://example.com/job-posting"
                             sx={{ mb: 2 }}
                             type="url"
+                            InputProps={{
+                                sx: { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                            }}
+                            InputLabelProps={{
+                                sx: { fontSize: { xs: '0.875rem', sm: '1rem' } }
+                            }}
                         />
-                        <Alert severity="info" sx={{ mb: 2 }}>
+                        <Alert severity="info" sx={{ mb: 2, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>
                             Paste any public job posting URL (LinkedIn, Indeed, Glassdoor, company career pages, etc.)
                         </Alert>
                         <Button
@@ -273,6 +348,8 @@ const JobDescriptionsUpload: React.FC<JobDescriptionsUploadProps> = ({ jobs, onJ
                             onClick={handleAddUrl}
                             startIcon={<AddIcon />}
                             disabled={!urlInput.trim()}
+                            fullWidth
+                            sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
                         >
                             Add from URL
                         </Button>

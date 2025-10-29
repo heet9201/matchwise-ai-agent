@@ -33,7 +33,8 @@ export default function ModeToggle() {
                             fontWeight: 500,
                             letterSpacing: '0.5px',
                             textTransform: 'uppercase',
-                            fontSize: '0.7rem',
+                            fontSize: { xs: '0.6rem', sm: '0.7rem' },
+                            display: { xs: 'none', sm: 'block' },
                         }}
                     >
                         {mode === 'recruiter' ? '🎯 Recruiter View' : '🚀 Candidate View'}
@@ -49,18 +50,18 @@ export default function ModeToggle() {
                     background: 'rgba(15, 23, 42, 0.4)',
                     backdropFilter: 'blur(12px)',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: 3,
-                    p: 0.5,
-                    gap: 0.5,
+                    borderRadius: { xs: 2, sm: 3 },
+                    p: { xs: 0.25, sm: 0.5 },
+                    gap: { xs: 0.25, sm: 0.5 },
                     '& .MuiToggleButtonGroup-grouped': {
                         border: 0,
-                        borderRadius: '10px !important',
+                        borderRadius: '8px !important',
                         margin: 0,
                         '&:not(:first-of-type)': {
-                            borderRadius: '10px',
+                            borderRadius: '8px',
                         },
                         '&:first-of-type': {
-                            borderRadius: '10px',
+                            borderRadius: '8px',
                         },
                     },
                 }}
@@ -68,8 +69,9 @@ export default function ModeToggle() {
                 <ToggleButton
                     value="recruiter"
                     sx={{
-                        px: 2.5,
-                        py: 1,
+                        px: { xs: 1, sm: 2.5 },
+                        py: { xs: 0.5, sm: 1 },
+                        minWidth: { xs: 'auto', sm: 'auto' },
                         color: 'rgba(255, 255, 255, 0.6)',
                         background: mode === 'recruiter'
                             ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(139, 92, 246, 0.4))'
@@ -95,11 +97,14 @@ export default function ModeToggle() {
                     }}
                 >
                     <motion.div
-                        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                         whileTap={{ scale: 0.95 }}
                     >
-                        <BusinessCenterIcon sx={{ fontSize: 18 }} />
-                        <span style={{ fontSize: '0.875rem', fontWeight: mode === 'recruiter' ? 600 : 500 }}>
+                        <BusinessCenterIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />
+                        <span style={{
+                            fontSize: '0.75rem',
+                            fontWeight: mode === 'recruiter' ? 600 : 500
+                        }}>
                             Recruiter
                         </span>
                     </motion.div>
@@ -108,8 +113,9 @@ export default function ModeToggle() {
                 <ToggleButton
                     value="candidate"
                     sx={{
-                        px: 2.5,
-                        py: 1,
+                        px: { xs: 1, sm: 2.5 },
+                        py: { xs: 0.5, sm: 1 },
+                        minWidth: { xs: 'auto', sm: 'auto' },
                         color: 'rgba(255, 255, 255, 0.6)',
                         background: mode === 'candidate'
                             ? 'linear-gradient(135deg, rgba(168, 85, 247, 0.4), rgba(236, 72, 153, 0.4))'
@@ -135,11 +141,14 @@ export default function ModeToggle() {
                     }}
                 >
                     <motion.div
-                        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                         whileTap={{ scale: 0.95 }}
                     >
-                        <PersonSearchIcon sx={{ fontSize: 18 }} />
-                        <span style={{ fontSize: '0.875rem', fontWeight: mode === 'candidate' ? 600 : 500 }}>
+                        <PersonSearchIcon sx={{ fontSize: { xs: 16, sm: 18 } }} />
+                        <span style={{
+                            fontSize: '0.75rem',
+                            fontWeight: mode === 'candidate' ? 600 : 500
+                        }}>
                             Candidate
                         </span>
                     </motion.div>

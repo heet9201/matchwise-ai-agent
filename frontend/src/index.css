@@ -59,6 +59,17 @@
 }
 
 @layer utilities {
+  /* Mobile-friendly base font size - keeps UI compact on phones */
+  html {
+    font-size: 14px; /* default base for small screens */
+  }
+
+  @media (min-width: 640px) {
+    html {
+      font-size: 16px; /* desktop/tablet base */
+    }
+  }
+
   /* Screen Reader Only - hide visually but keep accessible */
   .sr-only {
     position: absolute;
@@ -83,6 +94,27 @@
     white-space: normal;
   }
 
+  /* Extra small screens responsive utilities */
+  @media (min-width: 475px) {
+    .xs\:inline {
+      display: inline;
+    }
+    
+    .xs\:hidden {
+      display: none;
+    }
+  }
+  
+  @media (max-width: 474px) {
+    .xs\:inline {
+      display: none;
+    }
+    
+    .xs\:hidden {
+      display: inline;
+    }
+  }
+
   .glassmorphism {
     @apply bg-slate-900/40 backdrop-blur-md border border-white/10;
   }
@@ -93,6 +125,10 @@
   
   .glassmorphism-strong {
     @apply bg-slate-900/50 backdrop-blur-xl border border-white/10;
+  }
+  
+  .glassmorphism-subtle {
+    @apply bg-slate-800/30 backdrop-blur-sm border border-white/5;
   }
   
   .text-gradient {

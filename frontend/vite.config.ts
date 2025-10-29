@@ -60,6 +60,8 @@ export default defineConfig({
     minify: "esbuild",
     outDir: "dist",
     sourcemap: true,
+    // Copy public files to dist
+    copyPublicDir: true,
     // Chunk splitting strategy
     rollupOptions: {
       output: {

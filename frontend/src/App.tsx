@@ -1,4 +1,5 @@
 import { ThemeProvider, createTheme, CssBaseline, Container, Box, AppBar, Toolbar, Typography, Paper } from '@mui/material'
+import { responsiveFontSizes } from '@mui/material/styles'
 import '@fontsource/inter'
 import '@fontsource/manrope'
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter'
@@ -17,7 +18,7 @@ import { ModeProvider, useMode } from './contexts/ModeContext'
 import { motion } from 'framer-motion'
 import { apiService } from './services/api'
 
-const theme = createTheme({
+let theme = createTheme({
     palette: {
         mode: 'dark', // Dark-first approach for 2025
         primary: {
@@ -153,6 +154,7 @@ const theme = createTheme({
             },
         },
         MuiButton: {
+            defaultProps: { size: 'small' },
             styleOverrides: {
                 root: {
                     borderRadius: 12,
@@ -183,6 +185,16 @@ const theme = createTheme({
                 },
             },
         },
+        MuiTextField: {
+            defaultProps: {
+                size: 'small',
+            },
+        },
+        MuiIconButton: {
+            defaultProps: {
+                size: 'small',
+            },
+        },
         MuiPaper: {
             styleOverrides: {
                 root: {
@@ -209,6 +221,9 @@ const theme = createTheme({
         },
     },
 })
+
+// Make typography responsive across breakpoints to improve mobile scaling
+theme = responsiveFontSizes(theme)
 
 const AppContent = () => {
     const { mode } = useMode();
@@ -294,7 +309,16 @@ const AppContent = () => {
                             transition: 'all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                         }}
                     >
-                        <Toolbar sx={{ py: 2, px: { xs: 2, sm: 3, md: 4 } }} component="nav" aria-label="Main navigation">
+                        <Toolbar
+                            sx={{
+                                py: { xs: 1, sm: 2 },
+                                px: { xs: 1, sm: 2, md: 4 },
+                                minHeight: { xs: 56, sm: 64 },
+                                gap: { xs: 0.5, sm: 1 },
+                            }}
+                            component="nav"
+                            aria-label="Main navigation"
+                        >
                             <motion.div
                                 initial={false}
                                 animate={{
@@ -302,11 +326,11 @@ const AppContent = () => {
                                     scale: 1
                                 }}
                                 transition={{ duration: 0.6, type: 'spring', stiffness: 200 }}
-                                style={{ display: 'flex', marginRight: 20 }}
+                                style={{ display: 'flex', marginRight: 8, flexShrink: 0 }}
                             >
                                 {mode === 'recruiter' ? (
                                     <BusinessCenterIcon sx={{
-                                        fontSize: 32,
+                                        fontSize: { xs: 24, sm: 32 },
                                         background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
                                         WebkitBackgroundClip: 'text',
                                         WebkitTextFillColor: 'transparent',
@@ -314,7 +338,7 @@ const AppContent = () => {
                                     }} />
                                 ) : (
                                     <PersonSearchIcon sx={{
-                                        fontSize: 32,
+                                        fontSize: { xs: 24, sm: 32 },
                                         background: 'linear-gradient(135deg, #a855f7, #ec4899)',
                                         WebkitBackgroundClip: 'text',
                                         WebkitTextFillColor: 'transparent',
@@ -323,7 +347,7 @@ const AppContent = () => {
                                 )}
                             </motion.div>
 
-                            <Box sx={{ flexGrow: 1 }}>
+                            <Box sx={{ flexGrow: 1, minWidth: 0, mr: { xs: 0.5, sm: 1 } }}>
                                 <motion.div
                                     key={mode}
                                     initial={{ opacity: 0, x: -20 }}
@@ -335,12 +359,15 @@ const AppContent = () => {
                                         component="h1"
                                         sx={{
                                             fontWeight: 700,
+                                            fontSize: { xs: '1.1rem', sm: '1.5rem' },
                                             background: mode === 'recruiter'
                                                 ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
                                                 : 'linear-gradient(135deg, #a855f7, #ec4899)',
                                             WebkitBackgroundClip: 'text',
                                             WebkitTextFillColor: 'transparent',
                                             letterSpacing: '-0.02em',
+                                            lineHeight: 1.2,
+                                            whiteSpace: 'nowrap',
                                         }}
                                     >
                                         MatchWise
@@ -350,8 +377,12 @@ const AppContent = () => {
                                         sx={{
                                             color: 'rgba(255, 255, 255, 0.65)',
                                             fontWeight: 500,
+                                            fontSize: { xs: '0.65rem', sm: '0.75rem' },
                                             letterSpacing: '0.5px',
-                                            display: { xs: 'none', sm: 'block' }
+                                            display: { xs: 'none', sm: 'block' },
+                                            whiteSpace: 'nowrap',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
                                         }}
                                     >
                                         {mode === 'recruiter'
@@ -362,7 +393,9 @@ const AppContent = () => {
                                 </motion.div>
                             </Box>
 
-                            <ModeToggle />
+                            <Box sx={{ flexShrink: 0 }}>
+                                <ModeToggle />
+                            </Box>
                         </Toolbar>
                     </AppBar>
                 </motion.div>
