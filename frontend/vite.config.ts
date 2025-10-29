@@ -50,17 +50,15 @@ export default defineConfig({
     strictPort: false, // Allow fallback to another port if 3000 is busy
     open: true,
   },
+  define: {
+    "process.env.NODE_ENV": JSON.stringify(
+      process.env.NODE_ENV || "production"
+    ),
+  },
   build: {
+    minify: "esbuild",
     outDir: "dist",
     sourcemap: true,
-    // Enable minification
-    minify: "terser",
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
     // Chunk splitting strategy
     rollupOptions: {
       output: {

@@ -208,119 +208,120 @@ const Instructions: React.FC<InstructionsProps> = ({ isCandidateMode = false }) 
                                     : 'rgba(168, 85, 247, 0.2)',
                             },
                         }}
-                    >                        {steps.map((step) => (
-                        <Step key={step.label} active={true}>
-                            <StepLabel
-                                StepIconComponent={() => (
-                                    <Box
-                                        sx={{
-                                            background: mode === 'recruiter'
-                                                ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
-                                                : 'linear-gradient(135deg, #a855f7, #ec4899)',
-                                            borderRadius: '50%',
-                                            width: 40,
-                                            height: 40,
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            color: 'rgba(255, 255, 255, 0.95)',
-                                            boxShadow: mode === 'recruiter'
-                                                ? '0 4px 12px rgba(99, 102, 241, 0.4)'
-                                                : '0 4px 12px rgba(168, 85, 247, 0.4)',
-                                        }}
-                                    >
-                                        {step.icon}
-                                    </Box>
-                                )}
-                            >
-                                <Typography
-                                    variant="h6"
-                                    fontWeight={600}
-                                    sx={{
-                                        color: 'rgba(226, 232, 240, 0.95)'
-                                    }}
-                                >
-                                    {step.label}
-                                </Typography>
-                            </StepLabel>
-                            <StepContent>
-                                <Paper
-                                    elevation={1}
-                                    sx={{
-                                        p: 2,
-                                        mt: 1,
-                                        mb: 2,
-                                        background: mode === 'recruiter'
-                                            ? 'rgba(30, 41, 59, 0.6)'
-                                            : 'rgba(45, 27, 61, 0.6)',
-                                        backdropFilter: 'blur(10px)',
-                                        borderLeft: '4px solid',
-                                        borderColor: mode === 'recruiter'
-                                            ? '#6366f1'
-                                            : '#a855f7',
-                                    }}
-                                >
-                                    <Typography
-                                        variant="body2"
-                                        paragraph
-                                        sx={{
-                                            color: 'rgba(203, 213, 225, 0.9)'
-                                        }}
-                                    >
-                                        {step.description}
-                                    </Typography>
-                                    <Stack spacing={1} sx={{ pl: 2 }}>
-                                        {step.points.map((point, idx) => (
-                                            <Box key={idx} display="flex" alignItems="flex-start">
-                                                <Box
-                                                    sx={{
-                                                        width: 6,
-                                                        height: 6,
-                                                        borderRadius: '50%',
-                                                        background: mode === 'recruiter'
-                                                            ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
-                                                            : 'linear-gradient(135deg, #a855f7, #ec4899)',
-                                                        mt: 1,
-                                                        mr: 1.5,
-                                                        flexShrink: 0,
-                                                        boxShadow: mode === 'recruiter'
-                                                            ? '0 0 8px rgba(99, 102, 241, 0.5)'
-                                                            : '0 0 8px rgba(168, 85, 247, 0.5)',
-                                                    }}
-                                                />
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{
-                                                        color: 'rgba(203, 213, 225, 0.85)'
-                                                    }}
-                                                >
-                                                    {point}
-                                                </Typography>
-                                            </Box>
-                                        ))}
-                                    </Stack>
-                                    <Box mt={2}>
-                                        <Chip
-                                            label={`💡 ${step.tip}`}
-                                            size="small"
+                    >
+                        {steps.map((step, index) => (
+                            <Step key={`${step.label}-${index}`} active={true}>
+                                <StepLabel
+                                    icon={
+                                        <Box
                                             sx={{
                                                 background: mode === 'recruiter'
-                                                    ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))'
-                                                    : 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(236, 72, 153, 0.2))',
-                                                border: '1px solid',
-                                                borderColor: mode === 'recruiter'
-                                                    ? 'rgba(99, 102, 241, 0.3)'
-                                                    : 'rgba(168, 85, 247, 0.3)',
-                                                color: 'rgba(226, 232, 240, 0.95)',
-                                                fontWeight: 500,
-                                                backdropFilter: 'blur(10px)',
+                                                    ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+                                                    : 'linear-gradient(135deg, #a855f7, #ec4899)',
+                                                borderRadius: '50%',
+                                                width: 40,
+                                                height: 40,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                color: 'rgba(255, 255, 255, 0.95)',
+                                                boxShadow: mode === 'recruiter'
+                                                    ? '0 4px 12px rgba(99, 102, 241, 0.4)'
+                                                    : '0 4px 12px rgba(168, 85, 247, 0.4)',
                                             }}
-                                        />
-                                    </Box>
-                                </Paper>
-                            </StepContent>
-                        </Step>
-                    ))}
+                                        >
+                                            {step.icon}
+                                        </Box>
+                                    }
+                                >
+                                    <Typography
+                                        variant="h6"
+                                        fontWeight={600}
+                                        sx={{
+                                            color: 'rgba(226, 232, 240, 0.95)'
+                                        }}
+                                    >
+                                        {step.label}
+                                    </Typography>
+                                </StepLabel>
+                                <StepContent>
+                                    <Paper
+                                        elevation={1}
+                                        sx={{
+                                            p: 2,
+                                            mt: 1,
+                                            mb: 2,
+                                            background: mode === 'recruiter'
+                                                ? 'rgba(30, 41, 59, 0.6)'
+                                                : 'rgba(45, 27, 61, 0.6)',
+                                            backdropFilter: 'blur(10px)',
+                                            borderLeft: '4px solid',
+                                            borderColor: mode === 'recruiter'
+                                                ? '#6366f1'
+                                                : '#a855f7',
+                                        }}
+                                    >
+                                        <Typography
+                                            variant="body2"
+                                            paragraph
+                                            sx={{
+                                                color: 'rgba(203, 213, 225, 0.9)'
+                                            }}
+                                        >
+                                            {step.description}
+                                        </Typography>
+                                        <Stack spacing={1} sx={{ pl: 2 }}>
+                                            {step.points.map((point, idx) => (
+                                                <Box key={idx} display="flex" alignItems="flex-start">
+                                                    <Box
+                                                        sx={{
+                                                            width: 6,
+                                                            height: 6,
+                                                            borderRadius: '50%',
+                                                            background: mode === 'recruiter'
+                                                                ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+                                                                : 'linear-gradient(135deg, #a855f7, #ec4899)',
+                                                            mt: 1,
+                                                            mr: 1.5,
+                                                            flexShrink: 0,
+                                                            boxShadow: mode === 'recruiter'
+                                                                ? '0 0 8px rgba(99, 102, 241, 0.5)'
+                                                                : '0 0 8px rgba(168, 85, 247, 0.5)',
+                                                        }}
+                                                    />
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{
+                                                            color: 'rgba(203, 213, 225, 0.85)'
+                                                        }}
+                                                    >
+                                                        {point}
+                                                    </Typography>
+                                                </Box>
+                                            ))}
+                                        </Stack>
+                                        <Box mt={2}>
+                                            <Chip
+                                                label={`💡 ${step.tip}`}
+                                                size="small"
+                                                sx={{
+                                                    background: mode === 'recruiter'
+                                                        ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2))'
+                                                        : 'linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(236, 72, 153, 0.2))',
+                                                    border: '1px solid',
+                                                    borderColor: mode === 'recruiter'
+                                                        ? 'rgba(99, 102, 241, 0.3)'
+                                                        : 'rgba(168, 85, 247, 0.3)',
+                                                    color: 'rgba(226, 232, 240, 0.95)',
+                                                    fontWeight: 500,
+                                                    backdropFilter: 'blur(10px)',
+                                                }}
+                                            />
+                                        </Box>
+                                    </Paper>
+                                </StepContent>
+                            </Step>
+                        ))}
                     </Stepper>
 
                     <Box mt={3}>
