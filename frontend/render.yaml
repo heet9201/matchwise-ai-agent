@@ -1,9 +1,13 @@
 services:
   - type: web
     name: recruitment-ai-frontend
-    env: static
+    # env: static
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: VITE_API_URL
-        value: https://your-backend-url.onrender.com
+        value: https://recruitment-ai-agent-api.onrender.com
